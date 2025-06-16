@@ -1,6 +1,7 @@
 // src/pages/EditCommunityPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getCommunityDetails,
@@ -12,21 +13,15 @@ import {
     deleteCommunity
 } from '../services/communityService';
 
-// Componentes y Pestañas
 import CommunityDetailsTab from '../components/communities/CommunityDetailsTab';
 import CommunityImagesTab from '../components/communities/CommunityImagesTab';
 import CommunityMembersTab from '../components/communities/CommunityMembersTab';
 
-// Importaciones de Material-UI
-import { Container, Typography, Paper, Box, CircularProgress, Alert, Button, IconButton, Tabs, Tab, Stack, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
-
-// Iconos
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import InfoIcon from '@mui/icons-material/Info';
-import ImageIcon from '@mui/icons-material/Image';
-import PeopleIcon from '@mui/icons-material/People';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-
+import { Container, Typography, Paper, Box, CircularProgress, Alert, Button, IconButton, Tabs, Tab, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
+// === INICIO DE LA CORRECCIÓN ===
+// La ruta a los iconos estaba mal escrita.
+import { ArrowBack as ArrowBackIcon, Info as InfoIcon, Image as ImageIcon, People as PeopleIcon, WarningAmber as WarningAmberIcon } from '@mui/icons-material';
+// === FIN DE LA CORRECCIÓN ===
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -40,23 +35,27 @@ function TabPanel(props) {
 const EditCommunityPage = () => {
     const { communityId } = useParams();
     const navigate = useNavigate();
-    const { user: authUser, isAuthenticated } = useAuth();
+    const { user: authUser } = useAuth();
     
-    // Estados para los datos de la comunidad
+    // Estado General
     const [originalCommunity, setOriginalCommunity] = useState(null);
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [isPublic, setIsPublic] = useState(true);
-    const [idiomaPrincipal, setIdiomaPrincipal] = useState('');
-    const [idiomaSecundario, setIdiomaSecundario] = useState('');
-    
-    // Estados de carga y feedback
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
+    const [serverError, setServerError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [currentTab, setCurrentTab] = useState(0);
+
+    // Lógica y estado para el formulario de Detalles (con React Hook Form)
+    const {
+        control,
+        register,
+        handleSubmit,
+        setValue,
+        formState: { errors, isSubmitting, isDirty },
+        reset,
+        watch
+    } = useForm();
     
-    // Estados para imágenes
+    // Estados y Refs para las Imágenes
     const [currentLogoUrl, setCurrentLogoUrl] = useState(null);
     const [selectedLogoFile, setSelectedLogoFile] = useState(null);
     const [logoUploading, setLogoUploading] = useState(false);
@@ -73,70 +72,51 @@ const EditCommunityPage = () => {
     const [bannerSuccessMessage, setBannerSuccessMessage] = useState('');
     const bannerFileInputRef = useRef(null);
     
-    // Estados de UI y diálogo de eliminación
-    const [currentTab, setCurrentTab] = useState(0);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
-    
+
     useEffect(() => {
-        if (!isAuthenticated) {
-            navigate('/login');
-            return;
-        }
-
+        if (!authUser) return;
         setLoading(true);
-        setError('');
-
         getCommunityDetails(communityId)
             .then(data => {
-                if (authUser?.id !== data.createdBy?.id) {
-                    setError("No tienes permiso para editar esta comunidad.");
+                if (authUser.id !== data.createdBy?.id) {
+                    setServerError("No tienes permiso para editar esta comunidad.");
+                    setLoading(false);
                     return;
                 }
                 setOriginalCommunity(data);
-                setName(data.name || '');
-                setDescription(data.description || '');
-                setIsPublic(data.esPublica ?? true);
-                setIdiomaPrincipal(data.idiomaPrincipal || '');
-                setIdiomaSecundario(data.idiomaSecundario || '');
+                
+                const defaultValues = {
+                    name: data.name || '',
+                    description: data.description || '',
+                    esPublica: data.esPublica ?? true,
+                    idiomaPrincipal: data.idiomaPrincipal || '',
+                    idiomaSecundario: data.idiomaSecundario || ''
+                };
+                reset(defaultValues);
+                
                 setCurrentLogoUrl(data.logoUrl || null);
                 setCurrentBannerUrl(data.bannerUrl || null);
             })
-            .catch(err => {
-                console.error("Error al cargar datos para editar:", err);
-                setError(err.message || "No se pudo cargar la información.");
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-
-    }, [communityId, isAuthenticated, authUser, navigate]);
+            .catch(err => setServerError(err.message || "No se pudo cargar la información."))
+            .finally(() => setLoading(false));
+    }, [communityId, authUser, reset]);
     
-    const handleDetailsSubmit = async (event) => {
-        event.preventDefault();
-        setSaving(true);
-        setError('');
+    const onDetailsSubmit = async (data) => {
         setSuccessMessage('');
+        setServerError('');
         try {
-            const dataToUpdate = {
-                name: name.trim(),
-                description: description.trim(),
-                esPublica: isPublic,
-                idiomaPrincipal: idiomaPrincipal,
-                idiomaSecundario: idiomaSecundario || null,
-            };
-            const updated = await updateCommunity(communityId, dataToUpdate);
-            setOriginalCommunity(updated); // Actualiza el estado original para la detección de cambios
+            const updated = await updateCommunity(communityId, data);
             setSuccessMessage('Detalles de la comunidad actualizados con éxito.');
+            reset(data);
         } catch(err) {
-            setError(err.message || 'Error al guardar los cambios.');
-        } finally {
-            setSaving(false);
+            setServerError(err.message || 'Error al guardar los cambios.');
         }
     };
-
+    
     const handleLogoFileChange = (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -223,15 +203,9 @@ const EditCommunityPage = () => {
         }
     };
     
-    const handleTabChange = (event, newValue) => { setCurrentTab(newValue); };
-    
+    const handleTabChange = (event, newValue) => setCurrentTab(newValue);
     const openDeleteDialog = () => setIsDeleteDialogOpen(true);
-    
-    const closeDeleteDialog = () => { 
-        setIsDeleteDialogOpen(false); 
-        setDeleteConfirmText(''); 
-        setDeleteError(''); 
-    };
+    const closeDeleteDialog = () => { setIsDeleteDialogOpen(false); setDeleteConfirmText(''); setDeleteError(''); };
 
     const handleDeleteCommunity = async () => { 
         if (deleteConfirmText !== originalCommunity?.name) {
@@ -242,7 +216,7 @@ const EditCommunityPage = () => {
         setDeleteError('');
         try {
             await deleteCommunity(communityId);
-            navigate('/dashboard'); // Redirigir al dashboard
+            navigate('/dashboard');
         } catch (err) {
             setDeleteError(err.message || 'Error al eliminar la comunidad.');
             setDeleting(false);
@@ -250,67 +224,56 @@ const EditCommunityPage = () => {
     };
 
     if (loading) { return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>; }
-    if (error) { return <Container maxWidth="md" sx={{ mt: 4 }}><Alert severity="error">{error}</Alert></Container>; }
-
-    const hasChanges = originalCommunity ? 
-        (name.trim() !== originalCommunity.name || 
-        description.trim() !== (originalCommunity.description || '') || 
-        isPublic !== originalCommunity.esPublica ||
-        idiomaPrincipal !== (originalCommunity.idiomaPrincipal || '') ||
-        idiomaSecundario !== (originalCommunity.idiomaSecundario || '')) 
-        : false;
-        
-    const isAnyImageActionLoading = logoUploading || logoDeleting || bannerUploading || bannerDeleting;
+    if (serverError && !originalCommunity) { return <Container maxWidth="md" sx={{ mt: 4 }}><Alert severity="error">{serverError}</Alert></Container>; }
 
     return (
-        <>
-            <Container maxWidth="lg" sx={{ my: 4 }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                    <IconButton component={RouterLink} to={`/comunidades/${communityId}`} aria-label="Volver a la comunidad"><ArrowBackIcon /></IconButton>
-                    <Typography variant="h4" component="h1">Gestionar: {originalCommunity?.name}</Typography>
-                </Stack>
-                <Paper variant="outlined" sx={{ borderRadius: 2 }}>
-                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                        <Tabs value={currentTab} onChange={handleTabChange} aria-label="Pestañas de gestión" variant="scrollable" scrollButtons="auto">
-                            <Tab icon={<InfoIcon />} iconPosition="start" label="Detalles" />
-                            <Tab icon={<ImageIcon />} iconPosition="start" label="Imágenes" />
-                            <Tab icon={<PeopleIcon />} iconPosition="start" label="Miembros" />
-                        </Tabs>
-                    </Box>
+        <Container maxWidth="lg" sx={{ my: 4 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+                <IconButton component={RouterLink} to={`/comunidades/${communityId}`}><ArrowBackIcon /></IconButton>
+                <Typography variant="h4" component="h1">Gestionar: {originalCommunity?.name}</Typography>
+            </Stack>
+            <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                    <Tabs value={currentTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
+                        <Tab icon={<InfoIcon />} iconPosition="start" label="Detalles" />
+                        <Tab icon={<ImageIcon />} iconPosition="start" label="Imágenes" />
+                        <Tab icon={<PeopleIcon />} iconPosition="start" label="Miembros" />
+                    </Tabs>
+                </Box>
 
-                    <TabPanel value={currentTab} index={0}>
-                        <CommunityDetailsTab
-                            name={name} description={description} isPublic={isPublic}
-                            idiomaPrincipal={idiomaPrincipal} idiomaSecundario={idiomaSecundario}
-                            onNameChange={(e) => setName(e.target.value)}
-                            onDescriptionChange={(e) => setDescription(e.target.value)}
-                            onIsPublicChange={(e) => setIsPublic(e.target.checked)}
-                            onIdiomaPrincipalChange={(e) => setIdiomaPrincipal(e.target.value)}
-                            onIdiomaSecundarioChange={(e) => setIdiomaSecundario(e.target.value)}
-                            onSubmit={handleDetailsSubmit}
-                            saving={saving} error={error} successMessage={successMessage}
-                            hasChanges={hasChanges} isAnyImageActionLoading={isAnyImageActionLoading}
-                        />
-                        <Box sx={{ mt: 5, p: 2, border: 1, borderColor: 'error.main', borderRadius: 2 }}>
-                            <Typography variant="h6" color="error.main" gutterBottom>Zona de Peligro</Typography>
-                            <Typography variant="body2" sx={{ mb: 2 }}>La eliminación de una comunidad es una acción irreversible y borrará todos sus posts y membresías.</Typography>
-                            <Button variant="contained" color="error" onClick={openDeleteDialog} disabled={deleting}>Eliminar esta comunidad</Button>
-                        </Box>
-                    </TabPanel>
-                    <TabPanel value={currentTab} index={1}>
-                        <CommunityImagesTab
-                            communityName={originalCommunity?.name}
-                            currentLogoUrl={currentLogoUrl} selectedLogoFile={selectedLogoFile} logoUploading={logoUploading} logoDeleting={logoDeleting} logoError={logoError} logoSuccessMessage={logoSuccessMessage}
-                            logoFileInputRef={logoFileInputRef} handleLogoFileChange={handleLogoFileChange} handleUploadLogo={handleUploadLogo} handleDeleteLogo={handleDeleteLogo}
-                            currentBannerUrl={currentBannerUrl} selectedBannerFile={selectedBannerFile} bannerUploading={bannerUploading} bannerDeleting={bannerDeleting} bannerError={bannerError} bannerSuccessMessage={bannerSuccessMessage}
-                            bannerFileInputRef={bannerFileInputRef} handleBannerFileChange={handleBannerFileChange} handleUploadBanner={handleUploadBanner} handleDeleteBanner={handleDeleteBanner}
-                        />
-                    </TabPanel>
-                    <TabPanel value={currentTab} index={2}>
-                        <CommunityMembersTab communityId={communityId} isVisible={currentTab === 2} />
-                    </TabPanel>
-                </Paper>
-            </Container>
+                <TabPanel value={currentTab} index={0}>
+                    <CommunityDetailsTab
+                        onSubmit={handleSubmit(onDetailsSubmit)}
+                        control={control}
+                        register={register}
+                        errors={errors}
+                        isSubmitting={isSubmitting}
+                        isDirty={isDirty}
+                        watch={watch}
+                        serverError={serverError}
+                        successMessage={successMessage}
+                    />
+                    <Box sx={{ mt: 5, p: 2, border: 1, borderColor: 'error.main', borderRadius: 2 }}>
+                        <Typography variant="h6" color="error.main">Zona de Peligro</Typography>
+                        <Typography variant="body2" sx={{ mb: 2 }}>La eliminación de una comunidad es una acción irreversible.</Typography>
+                        <Button variant="contained" color="error" onClick={openDeleteDialog} disabled={deleting}>Eliminar esta comunidad</Button>
+                    </Box>
+                </TabPanel>
+                
+                <TabPanel value={currentTab} index={1}>
+                    <CommunityImagesTab
+                        communityName={originalCommunity?.name}
+                        currentLogoUrl={currentLogoUrl} selectedLogoFile={selectedLogoFile} logoUploading={logoUploading} logoDeleting={logoDeleting} logoError={logoError} logoSuccessMessage={logoSuccessMessage}
+                        logoFileInputRef={logoFileInputRef} handleLogoFileChange={handleLogoFileChange} handleUploadLogo={handleUploadLogo} handleDeleteLogo={handleDeleteLogo}
+                        currentBannerUrl={currentBannerUrl} selectedBannerFile={selectedBannerFile} bannerUploading={bannerUploading} bannerDeleting={bannerDeleting} bannerError={bannerError} bannerSuccessMessage={bannerSuccessMessage}
+                        bannerFileInputRef={bannerFileInputRef} handleBannerFileChange={handleBannerFileChange} handleUploadBanner={handleUploadBanner} handleDeleteBanner={handleDeleteBanner}
+                    />
+                </TabPanel>
+
+                <TabPanel value={currentTab} index={2}>
+                    <CommunityMembersTab communityId={communityId} isVisible={currentTab === 2} />
+                </TabPanel>
+            </Paper>
 
             <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog}>
                 <DialogTitle sx={{display: 'flex', alignItems: 'center', gap: 1}}>
@@ -328,7 +291,7 @@ const EditCommunityPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </>
+        </Container>
     );
 };
 

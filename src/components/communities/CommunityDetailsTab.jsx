@@ -1,48 +1,76 @@
 // src/components/communities/CommunityDetailsTab.jsx
 import React from 'react';
+import { useForm, Controller } from 'react-hook-form'; // Se importa Controller
 import { Box, TextField, FormControlLabel, Switch, Button, CircularProgress, Alert, Grid, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
 const languages = ["Español", "Inglés", "Portugués", "Francés", "Alemán", "Italiano", "Chino", "Japonés"];
 
+// === INICIO DE LA MODIFICACIÓN: El componente ahora recibe props de React Hook Form ===
 const CommunityDetailsTab = ({
-  name, description, isPublic,
-  idiomaPrincipal, idiomaSecundario, 
-  onNameChange, onDescriptionChange, onIsPublicChange,
-  onIdiomaPrincipalChange, onIdiomaSecundarioChange,
-  onSubmit, saving, error, successMessage,
-  hasChanges,
-  isAnyImageActionLoading,
+  control,
+  register,
+  errors,
+  onSubmit,
+  isSubmitting,
+  isDirty,
+  serverError,
+  successMessage,
+  watch
 }) => {
+// === FIN DE LA MODIFICACIÓN ===
+
+  const idiomaPrincipalSeleccionado = watch("idiomaPrincipal");
+
   return (
+    // El formulario ahora es manejado por el componente padre a través de onSubmit
     <Box component="form" onSubmit={onSubmit} noValidate sx={{ maxWidth: '700px' }}>
       {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {serverError && <Alert severity="error" sx={{ mb: 2 }}>{serverError}</Alert>}
       
-      <TextField fullWidth required label="Nombre de la Comunidad" value={name} onChange={onNameChange} margin="normal" disabled={saving || isAnyImageActionLoading} />
-      <TextField fullWidth multiline rows={4} label="Descripción" value={description} onChange={onDescriptionChange} margin="normal" disabled={saving || isAnyImageActionLoading} />
+      <TextField fullWidth required label="Nombre de la Comunidad" margin="normal" error={!!errors.name} helperText={errors.name?.message} {...register("name", { required: "El nombre es obligatorio" })} />
+      <TextField fullWidth multiline rows={4} label="Descripción" margin="normal" {...register("description")} />
       
-      {/* === INICIO DE LA CORRECCIÓN CON FLEXBOX === */}
-      <Box sx={{ display: 'flex', gap: 2, mt: 2, mb: 1 }}>
-        <FormControl fullWidth required disabled={saving || isAnyImageActionLoading}>
-            <InputLabel>Idioma Principal</InputLabel>
-            <Select value={idiomaPrincipal} label="Idioma Principal" onChange={onIdiomaPrincipalChange}>
-                {languages.map((lang) => <MenuItem key={lang} value={lang}>{lang}</MenuItem>)}
-            </Select>
-        </FormControl>
-        <FormControl fullWidth disabled={saving || isAnyImageActionLoading || !idiomaPrincipal}>
-            <InputLabel>Idioma Secundario (Opcional)</InputLabel>
-            <Select value={idiomaSecundario} label="Idioma Secundario (Opcional)" onChange={onIdiomaSecundarioChange}>
-                <MenuItem value=""><em>Ninguno</em></MenuItem>
-                {languages.filter(l => l !== idiomaPrincipal).map((lang) => <MenuItem key={lang} value={lang}>{lang}</MenuItem>)}
-            </Select>
-        </FormControl>
-      </Box>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+            <FormControl fullWidth margin="normal" required error={!!errors.idiomaPrincipal}>
+                <InputLabel>Idioma Principal</InputLabel>
+                <Controller
+                    name="idiomaPrincipal"
+                    control={control}
+                    rules={{ required: "El idioma es obligatorio" }}
+                    render={({ field }) => (
+                        <Select label="Idioma Principal" {...field} sx={{ minWidth: 120 }}>
+                            {languages.map((lang) => <MenuItem key={lang} value={lang}>{lang}</MenuItem>)}
+                        </Select>
+                    )}
+                />
+            </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+            <FormControl fullWidth margin="normal" disabled={isSubmitting || !idiomaPrincipalSeleccionado}>
+                <InputLabel>Idioma Secundario</InputLabel>
+                <Controller
+                    name="idiomaSecundario"
+                    control={control}
+                    render={({ field }) => (
+                        <Select label="Idioma Secundario" {...field} sx={{ minWidth: 120 }}>
+                            <MenuItem value=""><em>Ninguno</em></MenuItem>
+                            {languages.filter(l => l !== idiomaPrincipalSeleccionado).map((lang) => <MenuItem key={lang} value={lang}>{lang}</MenuItem>)}
+                        </Select>
+                    )}
+                />
+            </FormControl>
+        </Grid>
+      </Grid>
       
-      <FormControlLabel control={<Switch checked={isPublic} onChange={onIsPublicChange} disabled={saving || isAnyImageActionLoading} />} label={isPublic ? "Pública (Visible para todos)" : "Privada (Solo para miembros)"} sx={{ display: 'block', my: 1 }} />
+      <FormControlLabel
+        control={<Controller name="esPublica" control={control} render={({ field }) => <Switch {...field} checked={field.value} />} />}
+        label="Pública (Visible para todos)"
+      />
       
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-        <Button type="submit" variant="contained" disabled={saving || !hasChanges || isAnyImageActionLoading}>
-          {saving ? <CircularProgress size={24} /> : 'Guardar Cambios'}
+        <Button type="submit" variant="contained" disabled={!isDirty || isSubmitting}>
+          {isSubmitting ? <CircularProgress size={24} /> : 'Guardar Cambios'}
         </Button>
       </Box>
     </Box>

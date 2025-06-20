@@ -1,6 +1,7 @@
-// src/data/locations.js
+// RUTA: src/data/locations.js
 
-export const countries = [
+// CORRECCIÓN: Se renombra la constante a 'locations' para que coincida con la exportación
+export const locations = [
   {
     name: 'Colombia',
     states: [
@@ -52,3 +53,6 @@ export const countries = [
     ]
   },
 ];
+
+// La línea 'export { locations };' que tenías antes ya no es necesaria 
+// porque hemos exportado la constante directamente arriba.

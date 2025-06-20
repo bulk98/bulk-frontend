@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
-import { getPostById, toggleLikePost } from '../services/postService';
+// 1. CORRECCIÓN: Cambiar 'getPostById' por el nombre correcto 'getPostDetails'
+import { getPostDetails, toggleLikePost } from '../services/postService';
 import { useAuth } from '../contexts/AuthContext';
 import CommentSection from '../components/comments/CommentSection';
 
@@ -34,7 +35,8 @@ const PostDetailPage = () => {
             }
             setLoadingPost(true);
             try {
-                const data = await getPostById(postId);
+                // 2. CORRECCIÓN: Usar la función con el nombre correcto aquí también
+                const data = await getPostDetails(postId);
                 setPost(data);
                 setCurrentLikesCount(data.likesCount || 0);
                 setIsLikedByCurrentUser(data.userHasLiked || false);
@@ -78,7 +80,7 @@ const PostDetailPage = () => {
             <Container maxWidth="md" sx={{ mt: { xs: 2, sm: 4 }, mb: 4 }}>
                 <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, borderRadius: 2 }}>
                     <Stack spacing={2} sx={{ mb: 3 }}>
-                        {esPremium && <Chip label="Contenido Premium" color="premium" sx={{ alignSelf: 'flex-start' }} />}
+                        {esPremium && <Chip label="Contenido Premium" color="warning" sx={{ alignSelf: 'flex-start' }} />}
                         <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>{title}</Typography>
                         <Stack direction="row" spacing={2} alignItems="center">
                             <Avatar src={author?.avatarUrl} />

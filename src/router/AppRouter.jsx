@@ -9,6 +9,7 @@ import RegisterLayout from '../pages/Register/RegisterLayout';
 // Páginas Principales
 import HomePage from '../pages/HomePage';
 import LoginPage from '../pages/LoginPage';
+import RegisterPage from '../pages/RegisterPage'; // 1. Importamos la página principal de registro
 import ProfilePage from '../pages/ProfilePage';
 import CommunitiesListPage from '../pages/CommunitiesListPage';
 import CommunityDetailPage from '../pages/CommunityDetailPage';
@@ -81,14 +82,7 @@ const AppRouter = () => {
         <Route path="/login" element={<LoginPage />} />
         
         {/* NUEVO FLUJO DE REGISTRO ANIDADO */}
-        <Route path="/registro" element={<RegisterLayout />}>
-            {/* Redirige la ruta base /registro al primer paso */}
-            <Route index element={<Navigate to="paso-1" replace />} /> 
-            <Route path="paso-1" element={<Step1_PersonalInfo />} />
-            <Route path="paso-2" element={<Step2_Username />} />
-            <Route path="paso-3" element={<Step3_UserType />} />
-            <Route path="paso-4" element={<Step4_Password />} />
-        </Route>
+        <Route path="/register" element={<RegisterPage />} />
 
       </Routes>
   );

@@ -1,68 +1,62 @@
-// src/services/postService.js
+// RUTA: src/services/postService.js
+
 import api from './api';
 
-export const getPostsByCommunity = async (communityId, page = 1, limit = 10) => {
-    try {
-        const response = await api.get(`/comunidades/${communityId}/posts`, {
-            params: { page, limit }
-        });
-        return response.data;
-    } catch (error) {
-        let errorMessage = 'Error al obtener los posts.';
-        if (error.response && error.response.data) {
-            errorMessage = error.response.data.error || error.response.data.message || errorMessage;
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-        console.error(`Error en getPostsByCommunity para communityId ${communityId}:`, errorMessage);
-        throw new Error(errorMessage);
-    }
-};
-
-export const getPostById = async (postId) => {
-    try {
-        const response = await api.get(`/posts/${postId}`);
-        return response.data;
-    } catch (error) {
-        const errorMessage = error.response ? (error.response.data.message || error.response.data.error) : error.message;
-        console.error(`Error en getPostById para postId ${postId}:`, errorMessage);
-        throw new Error(errorMessage || 'Error al obtener el post.');
-    }
-};
-
-export const createPost = async (communityId, postData, imageFile = null) => {
+export const createPost = async (communityId, postData) => {
     const formData = new FormData();
+
     formData.append('title', postData.title);
     formData.append('content', postData.content);
+    formData.append('esPremium', String(postData.esPremium)); // ✅ Forzamos string para que el backend lo entienda
 
-    // Lógica robusta: El valor de esPremium (true/false) viene de postData
-    // y lo añadimos al formulario. FormData lo convertirá en texto "true" o "false".
-    if (postData.esPremium !== undefined) {
-        formData.append('esPremium', postData.esPremium);
-    }
-    
-    if (imageFile) {
-        formData.append('postImage', imageFile);
+    if (postData.postImage) {
+        formData.append('postImage', postData.postImage);
     }
 
     try {
         const response = await api.post(`/comunidades/${communityId}/posts`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response.data;
     } catch (error) {
-        const errorMessage = error.response ? (error.response.data.message || error.response.data.error) : error.message;
-        throw new Error(errorMessage || 'Error al crear el post.');
+        const errorMessage = error.response?.data?.error || "Ocurrió un error al crear el post.";
+        throw new Error(errorMessage);
+    }
+};
+
+// --- Otras funciones (sin cambios) ---
+export const getPostsByCommunity = async (communityId, page = 1, limit = 10) => {
+    try {
+        const response = await api.get(`/comunidades/${communityId}/posts`, { params: { page, limit } });
+        return response.data;
+    } catch (error) {
+        throw new Error("Error al obtener los posts.");
+    }
+};
+
+export const getPostDetails = async (postId) => {
+    try {
+        const response = await api.get(`/posts/${postId}`);
+        return response.data;
+    } catch (error) {
+        throw new Error("Error al obtener los detalles del post.");
     }
 };
 
 export const toggleLikePost = async (postId) => {
     try {
-        const response = await api.post(`/posts/${postId}/react`, {});
+        const response = await api.post(`/posts/${postId}/react`);
         return response.data;
     } catch (error) {
-        const errorMessage = error.response ? (error.response.data.message || error.response.data.error) : error.message;
-        console.error(`Error en toggleLikePost para postId ${postId}:`, errorMessage);
-        throw new Error(errorMessage || 'Error al procesar la reacción.');
+        throw new Error("Error al procesar la reacción.");
+    }
+};
+
+export const deletePost = async (postId) => {
+    try {
+        const response = await api.delete(`/posts/${postId}`);
+        return response.data;
+    } catch (error) {
+        throw new Error("Error al eliminar el post.");
     }
 };

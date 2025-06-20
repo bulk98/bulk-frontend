@@ -1,64 +1,106 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link as RouterLink } from 'react-router-dom'; // Importar Link de react-router-dom
+import { Link as RouterLink } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCommentsByPost, createComment, deleteComment, updateComment } from '../../services/commentService';
-
-// Importaciones de MUI (incluyendo Link)
-import { Paper, Typography, Box, CircularProgress, Alert, Button, Stack, Avatar, List, ListItem, ListItemAvatar, ListItemText, TextField, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link } from '@mui/material';
+import { 
+    Paper, Typography, Box, CircularProgress, Alert, Button, Stack, Avatar, List, 
+    ListItem, ListItemAvatar, ListItemText, TextField, IconButton, Tooltip, Link,
+    Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-const CommentSection = ({ postId, postAuthorId, communityCreatorId }) => {
+const CommentSection = ({ postId, postAuthorId, communityCreatorId, onCommentCountChange }) => {
     const { isAuthenticated, user: authUser } = useAuth();
+    
+    const { 
+        register, handleSubmit, reset, getValues, setValue, 
+        formState: { errors, isSubmitting } 
+    } = useForm({ mode: 'onChange' });
     
     const [comments, setComments] = useState([]);
     const [loadingComments, setLoadingComments] = useState(true);
-    const [errorComments, setErrorComments] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [totalComments, setTotalComments] = useState(0);
-    
-    const [newCommentContent, setNewCommentContent] = useState('');
-    const [submittingComment, setSubmittingComment] = useState(false);
-    
-    const [editingComment, setEditingComment] = useState(null);
-    const [editedContent, setEditedContent] = useState('');
-
+    const [editingCommentId, setEditingCommentId] = useState(null);
     const [deletingComment, setDeletingComment] = useState(null);
-    const [isConfirmOpen, setConfirmOpen] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
-
-    const fetchComments = useCallback(async (pageNum) => {
+    const fetchComments = useCallback(async (pageNum = 1) => {
+        if (pageNum === 1) setComments([]);
         setLoadingComments(true);
         try {
             const data = await getCommentsByPost(postId, pageNum);
-            setComments(data.comments || []);
+            setComments(prev => pageNum === 1 ? data.comments : [...prev, ...data.comments]);
             setPage(data.currentPage || 1);
             setTotalPages(data.totalPages || 0);
-            setTotalComments(data.totalComments || 0);
+            const newTotal = data.totalComments || 0;
+            setTotalComments(newTotal);
+            if (onCommentCountChange) onCommentCountChange(newTotal);
         } catch (err) {
-            setErrorComments('No se pudieron cargar los comentarios.');
+            setSnackbar({ open: true, message: 'No se pudieron cargar los comentarios.' });
         } finally {
             setLoadingComments(false);
         }
-    }, [postId]);
+    }, [postId, onCommentCountChange]);
 
-    useEffect(() => {
-        fetchComments(1);
-    }, [fetchComments]);
+    useEffect(() => { fetchComments(1); }, [fetchComments]);
+    
+    const handleCreateComment = async (data) => {
+    if (!data.newCommentContent?.trim()) return;
 
-    const handleCreateComment = async (e) => {
-        e.preventDefault();
-        if (!newCommentContent.trim()) return;
-        setSubmittingComment(true);
+    try {
+        await createComment(postId, { content: data.newCommentContent });
+        reset({ newCommentContent: '' });
+        await fetchComments(1);
+        setSnackbar({ open: true, message: 'Comentario publicado.' });
+    } catch (error) {
+        console.error("🔴 Error atrapado en CommentSection:", error);
+        setSnackbar({
+            open: true,
+            message: error?.message || "Error al comentar."
+        });
+    }
+};
+
+
+    const handleEditStart = (comment) => {
+        setEditingCommentId(comment.id);
+        setValue(`editContent_${comment.id}`, comment.content, { shouldValidate: true });
+    };
+
+    const handleEditCancel = () => setEditingCommentId(null);
+
+    const handleEditSave = async (commentId) => {
+        const content = getValues(`editContent_${commentId}`);
+        if (!content || !content.trim()) return;
         try {
-            await createComment(postId, { content: newCommentContent.trim() });
-            setNewCommentContent('');
-            fetchComments(1); 
-        } catch (error) {
-            console.error("Error creando comentario:", error);
+            await updateComment(commentId, { content: content.trim() });
+            setEditingCommentId(null);
+            setComments(prev => prev.map(c => c.id === commentId ? { ...c, content } : c));
+        } catch (error) { 
+            const errorMessage = error.response?.data?.error || "No se pudo guardar el comentario.";
+            setSnackbar({ open: true, message: errorMessage });
+        }
+    };
+    
+    const handleDeleteClick = (comment) => setDeletingComment(comment);
+    
+    const handleDeleteConfirm = async () => {
+        if (!deletingComment) return;
+        try {
+            await deleteComment(deletingComment.id);
+            setSnackbar({ open: true, message: 'Comentario eliminado.' });
+            await fetchComments(1);
+        } catch (error) { 
+            const errorMessage = error.response?.data?.error || "No se pudo eliminar el comentario.";
+            setSnackbar({ open: true, message: errorMessage });
         } finally {
-            setSubmittingComment(false);
+            setDeletingComment(null);
         }
     };
     
@@ -67,76 +109,32 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId }) => {
         return authUser.id === commentAuthorId || authUser.id === communityCreatorId;
     };
 
-    const handleEditStart = (comment) => {
-        setEditingComment(comment);
-        setEditedContent(comment.content);
-    };
-
-    const handleEditCancel = () => {
-        setEditingComment(null);
-        setEditedContent('');
-    };
-
-    const handleEditSave = async () => {
-        if (!editedContent.trim() || !editingComment) return;
-        try {
-            await updateComment(editingComment.id, { content: editedContent.trim() });
-            handleEditCancel();
-            fetchComments(page);
-        } catch (error) {
-            console.error("Error editando comentario:", error);
-        }
-    };
-
-    const handleDeleteClick = (comment) => {
-        setDeletingComment(comment);
-        setConfirmOpen(true);
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!deletingComment) return;
-        try {
-            await deleteComment(deletingComment.id);
-            fetchComments(1);
-        } catch (error) {
-            console.error("Error borrando comentario:", error);
-        } finally {
-            setConfirmOpen(false);
-            setDeletingComment(null);
-        }
-    };
-
-
     return (
         <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, mt: 4 }}>
-            <Typography variant="h4" component="h2" sx={{ fontWeight: 'medium', mb: 3 }}>
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 'medium', mb: 3 }}>
                 Comentarios ({totalComments})
             </Typography>
 
             {isAuthenticated && (
-                <Box component="form" onSubmit={handleCreateComment} sx={{ mb: 4 }}>
+                <Box component="form" onSubmit={handleSubmit(handleCreateComment)} sx={{ mb: 4 }}>
                     <Stack direction="row" spacing={2} alignItems="flex-start">
                         <Avatar src={authUser?.avatarUrl} sx={{ mt: 1 }} />
                         <TextField
-                            fullWidth
-                            multiline
-                            rows={3}
-                            label="Añadir un comentario..."
-                            value={newCommentContent}
-                            onChange={(e) => setNewCommentContent(e.target.value)}
-                            disabled={submittingComment}
+                            fullWidth multiline rows={3} placeholder="Añade un comentario..."
+                            {...register("newCommentContent", { required: "El comentario no puede estar vacío." })}
+                            error={!!errors.newCommentContent} helperText={errors.newCommentContent?.message}
+                            disabled={isSubmitting}
                         />
                     </Stack>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
-                        <Button type="submit" variant="contained" disabled={submittingComment || !newCommentContent.trim()}>
-                            {submittingComment ? <CircularProgress size={24} /> : 'Publicar'}
+                        <Button type="submit" variant="contained" disabled={isSubmitting}>
+                            {isSubmitting ? <CircularProgress size={24} /> : 'Publicar'}
                         </Button>
                     </Box>
                 </Box>
             )}
 
-            {loadingComments && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>}
-            {errorComments && <Alert severity="warning">{errorComments}</Alert>}
+            {loadingComments && comments.length === 0 && <Box sx={{textAlign: 'center'}}><CircularProgress/></Box>}
             {!loadingComments && comments.length === 0 && (
                 <Typography sx={{ fontStyle: 'italic', textAlign: 'center', py: 3, color: 'text.secondary' }}>
                     Aún no hay comentarios. ¡Sé el primero!
@@ -147,34 +145,32 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId }) => {
                 <List sx={{ width: '100%', p: 0 }}>
                     {comments.map((comment) => (
                         <ListItem key={comment.id} alignItems="flex-start" sx={{ py: 1.5, px: 0, gap: 2 }} divider>
-                            <ListItemAvatar>
-                                <Link component={RouterLink} to={`/perfil/${comment.author?.id}`}>
-                                    <Avatar src={comment.author?.avatarUrl} />
-                                </Link>
-                            </ListItemAvatar>
+                            <ListItemAvatar><Link component={RouterLink} to={`/perfil/${comment.author?.id}`}><Avatar src={comment.author?.avatarUrl} /></Link></ListItemAvatar>
                             <ListItemText
                                 primary={
                                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                        <Link component={RouterLink} to={`/perfil/${comment.author?.id}`} underline="hover" color="text.primary">
-                                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                                {comment.author?.username ? `@${comment.author.username}` : (comment.author?.name || 'Usuario Anónimo')}
-                                            </Typography>
-                                        </Link>
+                                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            <Link component={RouterLink} to={`/perfil/${comment.author?.id}`} underline="hover" color="text.primary">{comment.author?.username ? `@${comment.author.username}` : (comment.author?.name || 'Usuario Anónimo')}</Link>
+                                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>• {formatDistanceToNow(new Date(comment.createdAt), { locale: es })}</Typography>
+                                        </Typography>
                                         {canManageComment(comment.author?.id) && (
                                             <Stack direction="row">
-                                                <Tooltip title="Editar"><IconButton size="small" onClick={() => handleEditStart(comment)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                <Tooltip title="Eliminar"><IconButton size="small" onClick={() => handleDeleteClick(comment)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                <Tooltip title="Editar"><IconButton size="small" onClick={() => handleEditStart(comment)}><EditIcon fontSize="inherit" /></IconButton></Tooltip>
+                                                <Tooltip title="Eliminar"><IconButton size="small" onClick={() => handleDeleteClick(comment)}><DeleteIcon fontSize="inherit" /></IconButton></Tooltip>
                                             </Stack>
                                         )}
                                     </Stack>
                                 }
                                 secondary={
-                                    editingComment?.id === comment.id ? (
-                                        <Box sx={{width: '100%', mt:1}}>
-                                            <TextField fullWidth multiline value={editedContent} onChange={(e) => setEditedContent(e.target.value)} autoFocus size="small" />
+                                    editingCommentId === comment.id ? (
+                                        <Box component="form" onSubmit={handleSubmit(() => handleEditSave(comment.id))} sx={{width: '100%', mt:1}}>
+                                            <TextField fullWidth multiline autoFocus size="small"
+                                                {...register(`editContent_${comment.id}`, { required: true })}
+                                                error={!!errors[`editContent_${comment.id}`]}
+                                            />
                                             <Box sx={{mt:1, display:'flex', gap:1, justifyContent:'flex-end'}}>
                                                 <Button onClick={handleEditCancel} size="small">Cancelar</Button>
-                                                <Button onClick={handleEditSave} variant="contained" size="small">Guardar</Button>
+                                                <Button type="submit" variant="contained" size="small">Guardar</Button>
                                             </Box>
                                         </Box>
                                     ) : (
@@ -187,14 +183,22 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId }) => {
                 </List>
             )}
             
-            <Dialog open={isConfirmOpen} onClose={() => setConfirmOpen(false)}>
-                 <DialogTitle>Confirmar Eliminación</DialogTitle>
+            {page < totalPages && !loadingComments && (
+                <Box sx={{textAlign: 'center', mt: 2}}>
+                    <Button onClick={() => setPage(p => p + 1)}>Cargar más comentarios</Button>
+                </Box>
+            )}
+            
+            <Dialog open={!!deletingComment} onClose={() => setDeletingComment(null)}>
+                <DialogTitle>Confirmar Eliminación</DialogTitle>
                 <DialogContent><DialogContentText>¿Estás seguro de que quieres eliminar este comentario?</DialogContentText></DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+                    <Button onClick={() => setDeletingComment(null)}>Cancelar</Button>
                     <Button onClick={handleDeleteConfirm} color="error">Eliminar</Button>
                 </DialogActions>
             </Dialog>
+
+            <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} message={snackbar.message} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}/>
         </Paper>
     );
 };

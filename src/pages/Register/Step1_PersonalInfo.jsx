@@ -1,52 +1,61 @@
-// src/pages/Register/Step1_PersonalInfo.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useRegistration } from '../../contexts/RegistrationContext';
-import { Paper, Box, Typography, TextField, Button, Avatar } from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
+// RUTA: src/pages/Register/Step1_PersonalInfo.jsx
 
-const Step1_PersonalInfo = () => {
-    const navigate = useNavigate();
-    const { registrationData, updateRegistrationData } = useRegistration();
+import React from 'react';
+import { TextField, Typography, Grid, Autocomplete } from '@mui/material';
+import { Controller } from 'react-hook-form';
+import { locations } from '../../data/locations';
 
-    // Estado local para los campos de este paso
-    const [formData, setFormData] = useState({
-        name: registrationData.name || '',
-        email: registrationData.email || '',
-        fechaDeNacimiento: registrationData.fechaDeNacimiento || '',
-        // Añade aquí los otros campos si quieres validarlos localmente
-    });
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-    };
-
-    const handleNext = (e) => {
-        e.preventDefault();
-        // Aquí iría la validación de los campos antes de continuar
-        updateRegistrationData(formData);
-        navigate('/registro/paso-2'); // Navega al siguiente paso
-    };
-
+const Step1PersonalInfo = ({ register, errors, control }) => { 
+    const countryNames = locations.map(item => item.name);
     return (
-        <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: 2 }}>
-            <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}><PersonIcon /></Avatar>
-            <Typography component="h1" variant="h5">Paso 1: Cuéntanos sobre ti</Typography>
-            <Box component="form" onSubmit={handleNext} sx={{ mt: 3, width: '100%' }}>
-                <TextField name="name" label="Nombres y Apellidos" fullWidth required margin="normal" value={formData.name} onChange={handleChange} />
-                <TextField name="email" type="email" label="Correo Electrónico" fullWidth required margin="normal" value={formData.email} onChange={handleChange} />
-                <TextField name="fechaDeNacimiento" label="Fecha de Nacimiento" type="date" fullWidth required margin="normal" InputLabelProps={{ shrink: true }} value={formData.fechaDeNacimiento} onChange={handleChange}/>
-                {/* Aquí puedes añadir los demás campos: pais, ciudad, domicilio, celular */}
-
-                <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2, py: 1.5 }}>
-                    Siguiente
-                </Button>
-            </Box>
-        </Paper>
+        <>
+            <Typography variant="h6" gutterBottom>Información Personal</Typography>
+            <Grid container spacing={3} sx={{mt: 1}}>
+                <Grid item xs={12}>
+                    <TextField fullWidth label="Nombre y Apellido" {...register("name", { required: "Tu nombre es obligatorio" })} error={!!errors.name} helperText={errors.name?.message}/>
+                </Grid>
+                <Grid item xs={12}>
+                    <TextField fullWidth label="Fecha de Nacimiento" type="date" InputLabelProps={{ shrink: true }} {...register("fechaDeNacimiento", { required: "La fecha de nacimiento es obligatoria" })} error={!!errors.fechaDeNacimiento} helperText={errors.fechaDeNacimiento?.message}/>
+                </Grid>
+                <Grid item xs={12}>
+                    <Controller name="paisDeNacimiento" control={control} rules={{ required: "El país es obligatorio" }} render={({ field: { onChange, value } }) => (
+                        <Autocomplete 
+                            options={countryNames} 
+                            value={value || null} 
+                            onChange={(e, newValue) => onChange(newValue)} 
+                            // --- CORRECCIÓN DE ESTILO DEL MENÚ DESPLEGABLE ---
+                            // Le da al menú una altura máxima y lo hace scrolleable
+                            ListboxProps={{ style: { maxHeight: '200px' } }}
+                            renderInput={(params) => (
+                                <TextField {...params} label="País de Nacimiento" error={!!errors.paisDeNacimiento} helperText={errors.paisDeNacimiento?.message}/>
+                            )} 
+                        />
+                    )}/>
+                </Grid>
+                
+                {/* --- CAMPOS NUEVOS AÑADIDOS --- */}
+                <Grid item xs={12} sm={6}>
+                    <TextField 
+                        fullWidth 
+                        label="Domicilio"
+                        {...register("domicilio")} 
+                        error={!!errors.domicilio} 
+                        helperText={errors.domicilio?.message}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <TextField 
+                        fullWidth 
+                        label="Número de Celular"
+                        type="tel"
+                        {...register("celular")} 
+                        error={!!errors.celular} 
+                        helperText={errors.celular?.message}
+                    />
+                </Grid>
+            </Grid>
+        </>
     );
 };
 
-export default Step1_PersonalInfo;
+export default Step1PersonalInfo;

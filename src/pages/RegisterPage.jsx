@@ -1,190 +1,126 @@
-// src/pages/RegisterPage.jsx
-import React, { useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { registerUser as apiRegisterUser } from '../services/authService'; //
+// RUTA: src/pages/RegisterPage.jsx
 
-// Importaciones de Material-UI
-import Button from '@mui/material/Button'; //
-import TextField from '@mui/material/TextField'; //
-import Container from '@mui/material/Container'; //
-import Typography from '@mui/material/Typography'; //
-import Box from '@mui/material/Box'; //
-import Alert from '@mui/material/Alert'; //
-import CircularProgress from '@mui/material/CircularProgress'; //
-import Radio from '@mui/material/Radio'; //
-import RadioGroup from '@mui/material/RadioGroup'; //
-import FormControlLabel from '@mui/material/FormControlLabel'; //
-import FormControl from '@mui/material/FormControl'; //
-import FormLabel from '@mui/material/FormLabel'; //
-// Grid ya no es necesario para el enlace, pero se mantiene por si lo usas en otro lado.
-// import Grid from '@mui/material/Grid'; 
-import Paper from '@mui/material/Paper';
-import Avatar from '@mui/material/Avatar';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1'; // Ícono para registro
-import Link from '@mui/material/Link';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { registerUser } from '../services/authService';
+import { Alert, Container, Paper, Box, Stepper, Step, StepLabel, Button, Typography, CircularProgress } from '@mui/material';
+
+// Importación de los componentes de cada paso
+import Step1PersonalInfo from './Register/Step1_PersonalInfo';
+import Step2Username from './Register/Step2_Username';
+import Step3UserType from './Register/Step3_UserType';
+import Step4Password from './Register/Step4_Password';
+
+const steps = ['Info Personal', 'Usuario y Correo', 'Tipo de Cuenta', 'Contraseña'];
 
 const RegisterPage = () => {
-    const [email, setEmail] = useState(''); //
-    const [password, setPassword] = useState(''); //
-    const [confirmPassword, setConfirmPassword] = useState(''); //
-    const [userType, setUserType] = useState('MEMBER'); //
-    const [error, setError] = useState(''); //
-    const [successMessage, setSuccessMessage] = useState(''); //
-    const [loading, setLoading] = useState(false); //
+    const [currentStep, setCurrentStep] = useState(1);
+    const [serverError, setServerError] = useState('');
+    const navigate = useNavigate();
 
-    const navigate = useNavigate(); //
-
-    const handleSubmit = async (event) => { //
-        event.preventDefault();
-        setError('');
-        setSuccessMessage('');
-        setLoading(true);
-
-        if (!email || !password || !confirmPassword || !userType) {
-            setError('Todos los campos son obligatorios.');
-            setLoading(false);
-            return;
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        control,
+        trigger,
+        getValues,
+    } = useForm({
+        mode: 'onBlur',
+        defaultValues: {
+            name: '',
+            fechaDeNacimiento: '',
+            paisDeNacimiento: null,
+            username: '',
+            email: '',
+            tipo_usuario: 'CREW',
+            password: '',
+            confirmPassword: '',
+            // --- CAMPOS NUEVOS AÑADIDOS ---
+            domicilio: '',
+            celular: '',
         }
-        if (password !== confirmPassword) {
-            setError('Las contraseñas no coinciden.');
-            setLoading(false);
-            return;
-        }
+    });
 
-        try {
-            const userData = { email, password, userType }; //
-            const response = await apiRegisterUser(userData); //
-            setSuccessMessage(response.mensaje || '¡Registro exitoso! Ahora puedes iniciar sesión.');
-            setEmail(''); setPassword(''); setConfirmPassword(''); // setUserType('MEMBER');
-            setTimeout(() => { navigate('/login'); }, 3000); //
-        } catch (err) {
-            console.error('Error en handleSubmit de RegisterPage:', err);
-            if (err && err.errors && Array.isArray(err.errors) && err.errors.length > 0) {
-                setError(err.errors[0].msg || 'Error al registrar el usuario.');
-            } else {
-                const errorMessage = typeof err === 'string' ? err : err.message;
-                setError(errorMessage || 'Error al registrar el usuario. Intenta de nuevo.');
-            }
-        } finally {
-            setLoading(false);
+    const handleNext = async () => {
+        const fieldsByStep = {
+            // --- CAMPOS NUEVOS AÑADIDOS A LA VALIDACIÓN DEL PASO 1 ---
+            1: ['name', 'fechaDeNacimiento', 'paisDeNacimiento', 'domicilio', 'celular'],
+            2: ['username', 'email'],
+            3: ['tipo_usuario'],
+        };
+        
+        const fieldsToValidate = fieldsByStep[currentStep] || [];
+        const isValidStep = await trigger(fieldsToValidate);
+
+        if (isValidStep) {
+            setCurrentStep(prev => prev + 1);
         }
     };
 
-    return (
-        <Container 
-            component="main" 
-            maxWidth="xs" 
-            sx={{ 
-                mt: { xs: 4, sm: 8 }, // Margen superior, un poco menos en xs por el contenido más largo
-                mb: 4, // Margen inferior para dar espacio
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-            }}
-        >
-            <Paper 
-                elevation={3}
-                sx={{
-                    p: { xs: 2, sm: 3, md: 4 }, // Padding responsivo
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    width: '100%',
-                    borderRadius: (theme) => theme.shape.borderRadius * 1.5
-                }}
-            >
-                <Avatar sx={{ m: 1, bgcolor: 'secondary.main', width: 56, height: 56 }}>
-                    <PersonAddAlt1Icon fontSize="medium" />
-                </Avatar>
-                <Typography component="h1" variant="h5" sx={{ mt: 1 }}>
-                    Crear Cuenta en Bulk
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}> {/* Margen inferior reducido */}
-                    Únete para descubrir y gestionar comunidades.
-                </Typography>
-                
-                {/* Mensajes de error o éxito */}
-                {error && !successMessage && <Alert severity="error" sx={{ width: '100%', mb: 2, mt: 1 }}>{error}</Alert>}
-                {successMessage && <Alert severity="success" sx={{ width: '100%', mb: 2, mt: 1 }}>{successMessage}</Alert>}
-                
-                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%', mt: successMessage || error ? 0 : 1 }}>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="email"
-                        label="Correo Electrónico"
-                        name="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={loading || !!successMessage}
-                        autoFocus
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Contraseña"
-                        type="password"
-                        id="password"
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading || !!successMessage}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="confirmPassword"
-                        label="Confirmar Contraseña"
-                        type="password"
-                        id="confirmPassword"
-                        autoComplete="new-password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={loading || !!successMessage}
-                    />
-                    <FormControl component="fieldset" margin="normal" fullWidth required disabled={loading || !!successMessage}>
-                        <FormLabel component="legend" sx={{ mb: 0.5, fontSize: '0.9rem', color: 'text.secondary' }}>Tipo de Usuario</FormLabel>
-                        <RadioGroup
-                            row
-                            aria-label="tipo de usuario"
-                            name="userType"
-                            value={userType}
-                            onChange={(e) => setUserType(e.target.value)}
-                        >
-                            <FormControlLabel value="MEMBER" control={<Radio size="small" />} label="Miembro" />
-                            <FormControlLabel value="GURU" control={<Radio size="small" />} label="Gurú" />
-                        </RadioGroup>
-                    </FormControl>
+    const handleBack = () => setCurrentStep(prev => prev - 1);
 
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        sx={{ 
-                            mt: 2, // Margen superior ajustado
-                            mb: 2, 
-                            py: 1.2,
-                            fontSize: '1rem'
-                        }}
-                        disabled={loading || !!successMessage}
-                    >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Registrarme'}
-                    </Button>
+    const onFinalSubmit = async (data) => {
+        setServerError('');
+        try {
+            await registerUser(data);
+            navigate('/login', { state: { successMessage: '¡Registro exitoso! Por favor, inicia sesión.' } });
+        } catch (error) {
+            setServerError(error.response?.data?.error || error.message || 'Error en el registro. El usuario o correo puede que ya existan.');
+        }
+    };
+
+    const renderStepContent = () => {
+        const stepProps = { register, errors, control, getValues };
+        switch (currentStep) {
+            case 1: return <Step1PersonalInfo {...stepProps} />;
+            case 2: return <Step2Username {...stepProps} />;
+            case 3: return <Step3UserType {...stepProps} />;
+            case 4: return <Step4Password {...stepProps} />;
+            default: return null;
+        }
+    };
+    
+    const isLastStep = currentStep === steps.length;
+    
+    return (
+        <form onSubmit={handleSubmit(onFinalSubmit)}>
+            <Container component="main" maxWidth="sm" sx={{ my: { xs: 3, md: 6 } }}>
+                <Paper component="div" variant="elevation" elevation={4} sx={{ p: { xs: 2, md: 4 }, borderRadius: 2 }}>
+                    <Typography component="h1" variant="h4" align="center" gutterBottom>
+                        Crear una Cuenta
+                    </Typography>
+                    <Stepper activeStep={currentStep - 1} sx={{ pt: 2, pb: 4 }}>
+                        {steps.map((label) => (
+                            <Step key={label}><StepLabel>{label}</StepLabel></Step>
+                        ))}
+                    </Stepper>
                     
-                    <Box sx={{ textAlign: 'center', mt: 2.5, width: '100%' }}>
-                        <Link component={RouterLink} to="/login" variant="body2" sx={{ color: 'primary.main' }}>
-                            ¿Ya tienes una cuenta? Inicia sesión
-                        </Link>
+                    <Box sx={{ minHeight: 350, mt: 2 }}>
+                        {serverError && <Alert severity="error" sx={{mb: 2}}>{serverError}</Alert>}
+                        {renderStepContent()}
                     </Box>
-                </Box>
-            </Paper>
-        </Container>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+                        {currentStep > 1 && (
+                            <Button onClick={handleBack} sx={{ mr: 1 }} disabled={isSubmitting}>
+                                Atrás
+                            </Button>
+                        )}
+                        {isLastStep ? (
+                             <Button type="submit" variant="contained" disabled={isSubmitting}>
+                                {isSubmitting ? <CircularProgress size={24} /> : 'Finalizar Registro'}
+                            </Button>
+                        ) : (
+                            <Button variant="contained" type="button" onClick={handleNext}>
+                                Siguiente
+                            </Button>
+                        )}
+                    </Box>
+                </Paper>
+            </Container>
+        </form>
     );
 };
 

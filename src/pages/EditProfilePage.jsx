@@ -28,11 +28,12 @@ const EditProfilePage = () => {
     const { user, refreshAuthUserProfile } = useAuth();
     const navigate = useNavigate();
     const [tabValue, setTabValue] = useState(0);
-    const [serverError, setServerError] = useState('');
+    const [serverError, setServerError] = useState(null); // MODIFICADO: Usar null para una comprobación más limpia
     const [successMessage, setSuccessMessage] = useState('');
     const [openSnackbar, setOpenSnackbar] = useState(false);
 
-    const usernameRef = React.useRef(null);
+    // Se elimina la ref, ya que react-hook-form puede manejar el foco si es necesario.
+    // const usernameRef = React.useRef(null); 
 
     const {
         register, handleSubmit, control, watch, reset,
@@ -71,10 +72,13 @@ const EditProfilePage = () => {
     const handleTabChange = (event, newValue) => setTabValue(newValue);
 
     const onSubmit = async (data) => {
+        setServerError(null); // NUEVO: Limpiar cualquier error previo al iniciar el envío.
+        setSuccessMessage('');
+
         try {
             const { avatarFile, ...profileData } = data;
 
-            // Corregir fecha vacía
+            // No se toca esta lógica de fecha, ya que indicas que funciona.
             if (typeof profileData.fechaDeNacimiento === 'string' && profileData.fechaDeNacimiento.trim() === '') {
                 profileData.fechaDeNacimiento = null;
             } else if (profileData.fechaDeNacimiento) {
@@ -83,34 +87,25 @@ const EditProfilePage = () => {
 
             console.log('Datos que se enviarán al backend:', profileData);
             await updateUserProfile(profileData);
-            setSuccessMessage('✅ Perfil actualizado con éxito.');
-            setOpenSnackbar(true);
-
+            
             if (avatarFile && avatarFile.length > 0) {
                 await uploadUserAvatar(avatarFile[0]);
             }
 
             await refreshAuthUserProfile();
+            
+            setSuccessMessage('✅ Perfil actualizado con éxito.');
+            setOpenSnackbar(true); // Muestra el snackbar de éxito
+
             setTimeout(() => {
                 navigate(`/perfil/${user.id}`);
-                setServerError('');
-                setSuccessMessage('');
             }, 2000);
+
         } catch (error) {
             console.error("Error al actualizar el perfil:", error);
-            const msg = error.response?.data?.message || error.response?.data?.error || error.message || 'Hubo un error al guardar.';
-            if (msg.toLowerCase().includes('username') || msg.toLowerCase().includes('ya existe')) {
-    setError("username", {
-    type: "manual",
-    message: "Ese nombre de usuario ya está en uso. Intenta con otro."
-});
-setServerError("Ese nombre de usuario ya está en uso. Intenta con otro.");
-    if (usernameRef.current) usernameRef.current.focus();
-setOpenSnackbar(true);
-return;
-}
-            setSuccessMessage('');
-            setServerError(msg);
+            // MODIFICADO: Lógica de manejo de errores simplificada y robusta.
+            const errorMessage = error.error || 'Ocurrió un error inesperado al guardar.';
+            setServerError(errorMessage);
         }
     };
 
@@ -148,18 +143,15 @@ return;
                                 <TextField fullWidth label="Nombre y Apellido" {...register("name")} error={!!errors.name} helperText={errors.name?.message} />
                             </Grid>
                             <Grid item xs={12} sm={6}>
+                                {/* MODIFICADO: El campo de texto ya no necesita lógica de error compleja. */}
+                                {/* React-hook-form manejará los errores de validación del lado del cliente. */}
                                 <TextField
-  inputRef={usernameRef}
-  fullWidth
-  label="Nombre de usuario (@...)"
-  {...register("username")}
-  error={serverError.toLowerCase().includes('usuario') || serverError.toLowerCase().includes('username')}
-  helperText={
-    (serverError.toLowerCase().includes('usuario') || serverError.toLowerCase().includes('username')) 
-      ? 'Ese nombre de usuario ya está en uso. Intenta con otro.'
-      : ''
-  }
-/>
+                                    fullWidth
+                                    label="Nombre de usuario (@...)"
+                                    {...register("username")}
+                                    error={!!errors.username}
+                                    helperText={errors.username?.message}
+                                />
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField fullWidth label="Biografía" multiline rows={4} InputLabelProps={{ shrink: true }} {...register("bio")} />
@@ -174,22 +166,21 @@ return;
                             </Grid>
                             <Grid item xs={12} sm={6}>
                                 <Controller
-    name="fechaDeNacimiento"
-    control={control}
-    render={({ field }) => (
-        <TextField
-            fullWidth
-            label="Fecha de Nacimiento"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={field.value || ''}
-            disabled
-        />
-    )}
-/>
-</Grid>
-
-<Grid item xs={12} sm={6}>
+                                    name="fechaDeNacimiento"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            fullWidth
+                                            label="Fecha de Nacimiento"
+                                            type="date"
+                                            InputLabelProps={{ shrink: true }}
+                                            value={field.value || ''}
+                                            disabled // El campo está deshabilitado como en tu código original
+                                        />
+                                    )}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="Domicilio" {...register("domicilio")} />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -221,13 +212,23 @@ return;
                         </Grid>
                     </TabPanel>
 
+                    {/* NUEVO: Componente Alert para mostrar el error del servidor de forma clara y centralizada */}
+                    {serverError && (
+                        <Box sx={{ p: 2, pb: 0 }}>
+                             <Alert severity="error" onClose={() => setServerError(null)}>
+                                {serverError}
+                            </Alert>
+                        </Box>
+                    )}
                     
+                    {/* El Snackbar se mantiene para los mensajes de éxito */}
                     <Snackbar open={openSnackbar} autoHideDuration={4000} onClose={() => setOpenSnackbar(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-    <Alert onClose={() => setOpenSnackbar(false)} severity="success" sx={{ width: '100%' }}>
-        {successMessage}
-    </Alert>
-</Snackbar>
-<Box sx={{ p: 3, pt: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                        <Alert onClose={() => setOpenSnackbar(false)} severity="success" sx={{ width: '100%' }}>
+                            {successMessage}
+                        </Alert>
+                    </Snackbar>
+
+                    <Box sx={{ p: 3, pt: 1, display: 'flex', justifyContent: 'flex-end' }}>
                         <Button type="submit" variant="contained" disabled={isSubmitting || !isDirty}>
                             {isSubmitting ? <CircularProgress size={24} /> : 'Guardar Cambios'}
                         </Button>

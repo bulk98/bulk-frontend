@@ -85,7 +85,7 @@ const CommentDialog = ({ open, onClose, post, onCommentAdded }) => {
                   <ListItemText
                     primary={
                       <Link component={RouterLink} to={`/perfil/${comment.author.id}`} fontWeight="bold" color="text.primary" underline="hover">
-                        {comment.author.name || `@${comment.author.username}`}
+                        { `@${comment.author.username}`}
                       </Link>
                     }
                     secondary={

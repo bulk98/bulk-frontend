@@ -98,3 +98,13 @@ export const getUserCommunities = async (userId) => {
         throw error.response ? error.response.data : new Error('Error al obtener las comunidades del usuario.');
     }
 };
+
+export const getManagementInfo = async () => {
+    try {
+        const response = await api.get('/me/management-info');
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching management info:", error);
+        throw error.response ? error.response.data : new Error('Error al cargar la información de gestión.');
+    }
+};

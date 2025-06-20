@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns'; // MODIFICADO: Importar 'format'
 import { es } from 'date-fns/locale';
 
 const CommentSection = ({ postId, postAuthorId, communityCreatorId, onCommentCountChange }) => {
@@ -30,6 +30,7 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId, onCommentCou
     const [deletingComment, setDeletingComment] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
+    // El resto de tus funciones (fetchComments, handlers, etc.) no necesitan cambios.
     const fetchComments = useCallback(async (pageNum = 1) => {
         if (pageNum === 1) setComments([]);
         setLoadingComments(true);
@@ -51,22 +52,20 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId, onCommentCou
     useEffect(() => { fetchComments(1); }, [fetchComments]);
     
     const handleCreateComment = async (data) => {
-    if (!data.newCommentContent?.trim()) return;
-
-    try {
-        await createComment(postId, { content: data.newCommentContent });
-        reset({ newCommentContent: '' });
-        await fetchComments(1);
-        setSnackbar({ open: true, message: 'Comentario publicado.' });
-    } catch (error) {
-        console.error("🔴 Error atrapado en CommentSection:", error);
-        setSnackbar({
-            open: true,
-            message: error?.message || "Error al comentar."
-        });
-    }
-};
-
+        if (!data.newCommentContent?.trim()) return;
+        try {
+            await createComment(postId, { content: data.newCommentContent });
+            reset({ newCommentContent: '' });
+            await fetchComments(1);
+            setSnackbar({ open: true, message: 'Comentario publicado.' });
+        } catch (error) {
+            console.error("🔴 Error atrapado en CommentSection:", error);
+            setSnackbar({
+                open: true,
+                message: error?.message || "Error al comentar."
+            });
+        }
+    };
 
     const handleEditStart = (comment) => {
         setEditingCommentId(comment.id);
@@ -79,9 +78,11 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId, onCommentCou
         const content = getValues(`editContent_${commentId}`);
         if (!content || !content.trim()) return;
         try {
-            await updateComment(commentId, { content: content.trim() });
+            // MODIFICADO: La respuesta de updateComment debe incluir el comentario actualizado
+            const updatedComment = await updateComment(commentId, { content: content.trim() });
             setEditingCommentId(null);
-            setComments(prev => prev.map(c => c.id === commentId ? { ...c, content } : c));
+            // MODIFICADO: Usar la data del servidor para asegurar que 'updatedAt' es correcto
+            setComments(prev => prev.map(c => c.id === commentId ? { ...c, ...updatedComment } : c));
         } catch (error) { 
             const errorMessage = error.response?.data?.error || "No se pudo guardar el comentario.";
             setSnackbar({ open: true, message: errorMessage });
@@ -143,43 +144,72 @@ const CommentSection = ({ postId, postAuthorId, communityCreatorId, onCommentCou
 
             {!loadingComments && comments.length > 0 && (
                 <List sx={{ width: '100%', p: 0 }}>
-                    {comments.map((comment) => (
-                        <ListItem key={comment.id} alignItems="flex-start" sx={{ py: 1.5, px: 0, gap: 2 }} divider>
-                            <ListItemAvatar><Link component={RouterLink} to={`/perfil/${comment.author?.id}`}><Avatar src={comment.author?.avatarUrl} /></Link></ListItemAvatar>
-                            <ListItemText
-                                primary={
-                                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                            <Link component={RouterLink} to={`/perfil/${comment.author?.id}`} underline="hover" color="text.primary">{comment.author?.username ? `@${comment.author.username}` : (comment.author?.name || 'Usuario Anónimo')}</Link>
-                                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>• {formatDistanceToNow(new Date(comment.createdAt), { locale: es })}</Typography>
-                                        </Typography>
-                                        {canManageComment(comment.author?.id) && (
-                                            <Stack direction="row">
-                                                <Tooltip title="Editar"><IconButton size="small" onClick={() => handleEditStart(comment)}><EditIcon fontSize="inherit" /></IconButton></Tooltip>
-                                                <Tooltip title="Eliminar"><IconButton size="small" onClick={() => handleDeleteClick(comment)}><DeleteIcon fontSize="inherit" /></IconButton></Tooltip>
-                                            </Stack>
-                                        )}
-                                    </Stack>
-                                }
-                                secondary={
-                                    editingCommentId === comment.id ? (
-                                        <Box component="form" onSubmit={handleSubmit(() => handleEditSave(comment.id))} sx={{width: '100%', mt:1}}>
+                    {comments.map((comment) => {
+                        // ===== INICIO DE LA MODIFICACIÓN =====
+                        const createdAt = new Date(comment.createdAt);
+                        const updatedAt = new Date(comment.updatedAt);
+                        // Comprobamos si la diferencia es mayor a 10 segundos para considerarlo editado
+                        const isEdited = (updatedAt.getTime() - createdAt.getTime()) > 10000; 
+                        // ===== FIN DE LA MODIFICACIÓN =====
+
+                        return (
+                            <ListItem 
+                                key={comment.id} 
+                                alignItems="flex-start" 
+                                sx={{ py: 1.5, px: 0, gap: 2, flexDirection: 'column' }} 
+                                divider
+                            >
+                                <Box sx={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+                                    <ListItemAvatar>
+                                        <Link component={RouterLink} to={`/perfil/${comment.author?.id}`}>
+                                            <Avatar src={comment.author?.avatarUrl} />
+                                        </Link>
+                                    </ListItemAvatar>
+                                    <ListItemText
+                                        primary={
+                                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                                <Link component={RouterLink} to={`/perfil/${comment.author?.id}`} underline="hover" color="text.primary">{comment.author?.username ? `@${comment.author.username}` : (comment.author?.name || 'Usuario Anónimo')}</Link>
+                                                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>• {formatDistanceToNow(createdAt, { locale: es })}</Typography>
+                                                
+                                                {/* ===== INICIO DE LA MODIFICACIÓN ===== */}
+                                                {isEdited && (
+                                                    <Tooltip title={`Editado el ${format(updatedAt, "dd/MM/yyyy 'a las' HH:mm", { locale: es })}`}>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                                                            (editado)
+                                                        </Typography>
+                                                    </Tooltip>
+                                                )}
+                                                {/* ===== FIN DE LA MODIFICACIÓN ===== */}
+                                            </Typography>
+                                        }
+                                    />
+                                    {canManageComment(comment.author?.id) && (
+                                        <Stack direction="row">
+                                            <Tooltip title="Editar"><IconButton size="small" onClick={() => handleEditStart(comment)}><EditIcon fontSize="inherit" /></IconButton></Tooltip>
+                                            <Tooltip title="Eliminar"><IconButton size="small" onClick={() => handleDeleteClick(comment)}><DeleteIcon fontSize="inherit" /></IconButton></Tooltip>
+                                        </Stack>
+                                    )}
+                                </Box>
+                                
+                                <Box sx={{ width: '100%', pl: '56px', pt: 0.5 }}>
+                                    {editingCommentId === comment.id ? (
+                                        <Box sx={{width: '100%'}}>
                                             <TextField fullWidth multiline autoFocus size="small"
                                                 {...register(`editContent_${comment.id}`, { required: true })}
                                                 error={!!errors[`editContent_${comment.id}`]}
                                             />
                                             <Box sx={{mt:1, display:'flex', gap:1, justifyContent:'flex-end'}}>
                                                 <Button onClick={handleEditCancel} size="small">Cancelar</Button>
-                                                <Button type="submit" variant="contained" size="small">Guardar</Button>
+                                                <Button onClick={() => handleEditSave(comment.id)} variant="contained" size="small">Guardar</Button>
                                             </Box>
                                         </Box>
                                     ) : (
-                                        <Typography sx={{ whiteSpace: 'pre-wrap', pt: 0.5 }} component="span" variant="body2">{comment.content}</Typography>
-                                    )
-                                }
-                            />
-                        </ListItem>
-                    ))}
+                                        <Typography sx={{ whiteSpace: 'pre-wrap' }} component="div" variant="body2">{comment.content}</Typography>
+                                    )}
+                                </Box>
+                            </ListItem>
+                        );
+                    })}
                 </List>
             )}
             

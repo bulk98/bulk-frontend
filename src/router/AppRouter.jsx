@@ -20,6 +20,7 @@ import EditCommunityPage from '../pages/EditCommunityPage';
 import GuruDashboardPage from '../pages/GuruDashboardPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import EditProfilePage from '../pages/EditProfilePage';
+import SubscriptionsManagementPage from '../pages/SubscriptionsManagementPage';
 
 // Pasos del Flujo de Registro
 import Step1_PersonalInfo from '../pages/Register/Step1_PersonalInfo';
@@ -74,6 +75,10 @@ const AppRouter = () => {
             path="/dashboard"
             element={<ProtectedRoute allowedUserTypes={['OG']}><GuruDashboardPage /></ProtectedRoute>}
           />
+          {/* ... (otras rutas) ... */}
+                <Route path="/gestionar-suscripciones" element={<ProtectedRoute><SubscriptionsManagementPage /></ProtectedRoute>} />
+                <Route path="*" element={<NotFoundPage />} />
+
           {/* Ruta Catch-all para páginas no encontradas dentro del layout principal */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>

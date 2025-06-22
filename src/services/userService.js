@@ -108,3 +108,14 @@ export const getManagementInfo = async () => {
         throw error.response ? error.response.data : new Error('Error al cargar la información de gestión.');
     }
 };
+
+export const changePassword = async (passwordData) => {
+    try {
+        const response = await api.patch('/me/change-password', passwordData);
+        return response.data;
+    } catch (error) {
+        console.error("Error changing password:", error);
+        // Lanza el error del backend para que el componente lo pueda mostrar
+        throw error.response?.data || new Error('Error al cambiar la contraseña.');
+    }
+};

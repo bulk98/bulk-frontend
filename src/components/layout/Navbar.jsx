@@ -7,7 +7,7 @@ import { performSearch } from '../../services/searchService';
 import {
     AppBar, Box, Toolbar, Typography, Button, IconButton, Menu, MenuItem,
     ListItemIcon, ListItemText, Avatar, Tooltip, Container, TextField,
-    Autocomplete, CircularProgress, InputAdornment, Link, Paper, Stack, Divider // MODIFICADO: Se añade Divider
+    Autocomplete, CircularProgress, InputAdornment, Link, Paper, Stack, Divider, Badge // MODIFICADO: Se añade Divider
 } from '@mui/material';
 
 import MenuIcon from '@mui/icons-material/Menu';
@@ -23,13 +23,16 @@ import SearchIcon from '@mui/icons-material/Search';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SubscriptionsIcon from '@mui/icons-material/Subscriptions';
+import NotificationsIcon from '@mui/icons-material/Notifications'; // NUEVO: Ícono de notificaciones
+import NotificationPanel from './NotificationPanel';
 
 const Navbar = () => {
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, unreadCount } = useAuth();
     const navigate = useNavigate();
 
     const [anchorElNav, setAnchorElNav] = useState(null);
     const [anchorElUser, setAnchorElUser] = useState(null);
+    const [anchorElNotif, setAnchorElNotif] = useState(null);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -76,6 +79,10 @@ const Navbar = () => {
     const handleCloseNavMenu = () => setAnchorElNav(null);
     const handleOpenUserMenu = (e) => setAnchorElUser(e.currentTarget);
     const handleCloseUserMenu = () => setAnchorElUser(null);
+    
+    const handleOpenNotifMenu = (e) => setAnchorElNotif(e.currentTarget);
+    const handleCloseNotifMenu = () => setAnchorElNotif(null);
+
     const handleLogout = () => {
         logout();
         handleCloseUserMenu();
@@ -190,7 +197,16 @@ const Navbar = () => {
                     </Box>
 
                     {isAuthenticated && user ? (
-                        <Box sx={{ flexGrow: 0, ml: { xs: 0, md: 1.5 } }}>
+                        <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 1, ml: { xs: 0, md: 1.5 } }}>
+                           {/* NUEVO: Botón de Notificaciones */}
+                            <Tooltip title="Notificaciones">
+                                <IconButton onClick={handleOpenNotifMenu} color="inherit">
+                                    <Badge badgeContent={unreadCount} color="error">
+                                        <NotificationsIcon />
+                                    </Badge>
+                                </IconButton>
+                            </Tooltip>
+
                             <Tooltip title="Opciones de usuario">
                                 <Button onClick={handleOpenUserMenu} color="inherit" sx={{ p: 0.5, borderRadius: '50px', textTransform: 'none', gap: 0.5 }}>
                                     <Avatar src={user.avatarUrl || undefined} sx={{ width: 32, height: 32 }}>{user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}</Avatar>
@@ -212,6 +228,21 @@ const Navbar = () => {
                                 })}
                                 {/* ===== FIN DE LA MODIFICACIÓN ===== */}
                             </Menu>
+
+                            <Menu
+                                anchorEl={anchorElNotif}
+                                open={Boolean(anchorElNotif)}
+                                onClose={handleCloseNotifMenu}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                MenuListProps={{ sx: { p: 0 } }}
+                                PaperProps={{
+                                    sx: { width: 380, maxHeight: 500, mt: 1.5, borderRadius: 2 }
+                                }}
+                            >
+                                <NotificationPanel onClose={handleCloseNotifMenu} />
+                            </Menu>
+                            
                         </Box>
                     ) : (
                         <Stack direction="row" spacing={1} sx={{ ml: 2, display: { xs: 'none', md: 'flex' } }}>

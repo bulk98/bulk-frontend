@@ -205,6 +205,10 @@ const CommunityDetailPage = () => {
     if (!community) return <Container maxWidth="md" sx={{ mt: 4 }}><Typography variant="h6">Comunidad no encontrada.</Typography></Container>;
 
     const isCreator = isAuthenticated && authUser?.id === community.createdBy?.id;
+    const isModerator = community.currentUserMembership?.role === 'MODERATOR';
+    const canManageCommunity = isCreator || isModerator;
+
+    
     const membershipInfo = community.currentUserMembership;
     const userCanViewPremium = isCreator || membershipInfo?.role === 'MODERATOR' || membershipInfo?.isSubscribed;
     const canCreatePost = membershipInfo?.role === 'CREATOR' || membershipInfo?.role === 'MODERATOR';
@@ -277,7 +281,9 @@ const CommunityDetailPage = () => {
                                         interaction={postInteractions[post.id]} 
                                         onLike={handleToggleLikePost} 
                                         onComment={handleCommentPost} 
-                                        onShare={handleSharePost} 
+                                        onShare={handleSharePost}
+                                        onUpdate={fetchCommunityData} // Esta ya la habíamos planeado, asegúrate que esté
+                                        canManage={canManageCommunity} // <-- AÑADE ESTA LÍNEA 
                                     />
                                 );
                                 if (posts.length === index + 1) {

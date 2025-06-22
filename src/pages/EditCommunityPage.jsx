@@ -1,4 +1,4 @@
-// src/pages/EditCommunityPage.jsx
+// RUTA: src/pages/EditCommunityPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -16,20 +16,19 @@ import {
 import CommunityDetailsTab from '../components/communities/CommunityDetailsTab';
 import CommunityImagesTab from '../components/communities/CommunityImagesTab';
 import CommunityMembersTab from '../components/communities/CommunityMembersTab';
+import CommunitySubscribersTab from '../components/communities/CommunitySubscribersTab';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 
 import { Container, Typography, Paper, Box, CircularProgress, Alert, Button, IconButton, Tabs, Tab, Stack, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
-// === INICIO DE LA CORRECCIÓN ===
-// La ruta a los iconos estaba mal escrita.
 import { ArrowBack as ArrowBackIcon, Info as InfoIcon, Image as ImageIcon, People as PeopleIcon, WarningAmber as WarningAmberIcon } from '@mui/icons-material';
-// === FIN DE LA CORRECCIÓN ===
 
 function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} {...other}>
-      {value === index && <Box sx={{ p: { xs: 2, md: 3 } }}>{children}</Box>}
-    </div>
-  );
+    const { children, value, index, ...other } = props;
+    return (
+        <div role="tabpanel" hidden={value !== index} id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} {...other}>
+            {value === index && <Box sx={{ p: { xs: 2, md: 3 } }}>{children}</Box>}
+        </div>
+    );
 }
 
 const EditCommunityPage = () => {
@@ -37,25 +36,22 @@ const EditCommunityPage = () => {
     const navigate = useNavigate();
     const { user: authUser } = useAuth();
     
-    // Estado General
+    // --- ESTADO UNIFICADO ---
     const [originalCommunity, setOriginalCommunity] = useState(null);
     const [loading, setLoading] = useState(true);
     const [serverError, setServerError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [currentTab, setCurrentTab] = useState(0);
-
-    // Lógica y estado para el formulario de Detalles (con React Hook Form)
+    
+    // MODIFICADO: Se usa una sola variable para el estado de las pestañas
+    const [currentTab, setCurrentTab] = useState(0); 
+    
     const {
-        control,
-        register,
-        handleSubmit,
-        setValue,
+        control, register, handleSubmit, setValue,
         formState: { errors, isSubmitting, isDirty },
-        reset,
-        watch
+        reset, watch
     } = useForm();
     
-    // Estados y Refs para las Imágenes
+    // Estados para las imágenes
     const [currentLogoUrl, setCurrentLogoUrl] = useState(null);
     const [selectedLogoFile, setSelectedLogoFile] = useState(null);
     const [logoUploading, setLogoUploading] = useState(false);
@@ -72,11 +68,18 @@ const EditCommunityPage = () => {
     const [bannerSuccessMessage, setBannerSuccessMessage] = useState('');
     const bannerFileInputRef = useRef(null);
     
+    // Estados para la eliminación
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
 
+    // --- MANEJADOR DE PESTAÑAS CORREGIDO ---
+    const handleTabChange = (event, newValue) => {
+        setCurrentTab(newValue);
+    };
+
+    // --- HOOKS DE EFECTO (CORREGIDOS) ---
     useEffect(() => {
         if (!authUser) return;
         setLoading(true);
@@ -105,6 +108,7 @@ const EditCommunityPage = () => {
             .finally(() => setLoading(false));
     }, [communityId, authUser, reset]);
     
+    // --- LÓGICA DE MANEJADORES (SIN CAMBIOS) ---
     const onDetailsSubmit = async (data) => {
         setSuccessMessage('');
         setServerError('');
@@ -203,7 +207,6 @@ const EditCommunityPage = () => {
         }
     };
     
-    const handleTabChange = (event, newValue) => setCurrentTab(newValue);
     const openDeleteDialog = () => setIsDeleteDialogOpen(true);
     const closeDeleteDialog = () => { setIsDeleteDialogOpen(false); setDeleteConfirmText(''); setDeleteError(''); };
 
@@ -238,6 +241,7 @@ const EditCommunityPage = () => {
                         <Tab icon={<InfoIcon />} iconPosition="start" label="Detalles" />
                         <Tab icon={<ImageIcon />} iconPosition="start" label="Imágenes" />
                         <Tab icon={<PeopleIcon />} iconPosition="start" label="Miembros" />
+                        <Tab icon={<SupervisorAccountIcon />} iconPosition="start" label="Suscriptores" />
                     </Tabs>
                 </Box>
 
@@ -273,6 +277,11 @@ const EditCommunityPage = () => {
                 <TabPanel value={currentTab} index={2}>
                     <CommunityMembersTab communityId={communityId} isVisible={currentTab === 2} />
                 </TabPanel>
+
+                <TabPanel value={currentTab} index={3}>
+                    <CommunitySubscribersTab />
+                </TabPanel>
+
             </Paper>
 
             <Dialog open={isDeleteDialogOpen} onClose={closeDeleteDialog}>
@@ -280,7 +289,7 @@ const EditCommunityPage = () => {
                     <WarningAmberIcon color="error"/>Confirmar Eliminación Permanente
                 </DialogTitle>
                 <DialogContent>
-                    <DialogContentText>Esta acción no se puede deshacer. Se eliminará permanentemente la comunidad **{originalCommunity?.name}** y todo su contenido.</DialogContentText>
+                    <DialogContentText>Esta acción no se puede deshacer. Se eliminará permanentemente la comunidad <strong>{originalCommunity?.name}</strong> y todo su contenido.</DialogContentText>
                     <DialogContentText sx={{mt: 2, fontWeight:'bold'}}>Para confirmar, escribe el nombre de la comunidad:</DialogContentText>
                     <TextField autoFocus margin="dense" id="confirm-delete" label="Nombre de la comunidad" type="text" fullWidth variant="standard" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} error={!!deleteError} helperText={deleteError}/>
                 </DialogContent>

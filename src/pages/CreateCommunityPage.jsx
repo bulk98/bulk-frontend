@@ -40,6 +40,10 @@ const CreateCommunityPage = () => {
     const idiomaPrincipalSeleccionado = watch("idiomaPrincipal");
 
     const onSubmit = async (data) => {
+        console.log("===== DATOS DEL FORMULARIO (FRONTEND) ANTES DE ENVIAR =====");
+        console.log(data);
+        console.log("Tipo de dato para 'esPublica' en el frontend:", typeof data.esPublica);
+        console.log("==========================================================");
         setServerError('');
         setSuccessMessage('');
 
@@ -134,9 +138,24 @@ const CreateCommunityPage = () => {
                         </Grid>
                     </Grid>
 
-                    <FormControlLabel control={
-                        <Controller name="esPublica" control={control} render={({ field }) => <Switch {...field} checked={field.value} />} />
-                    } label="Pública (Visible para todos)" sx={{ my: 1.5, display: 'block' }} disabled={isSubmitting || !!successMessage} />
+                    <Controller
+                        name="esPublica"
+                        control={control}
+                        render={({ field: { value, onChange, ref } }) => (
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        inputRef={ref}
+                                        checked={!!value} // Usamos !!value para asegurar que siempre sea un booleano
+                                        onChange={(e) => onChange(e.target.checked)}
+                                    />
+                                }
+                                label="Pública (Visible para todos)"
+                                sx={{ my: 1.5, display: 'block' }}
+                                disabled={isSubmitting || !!successMessage}
+                            />
+                        )}
+                    />
                     
                     <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
                         <Button component={RouterLink} to="/dashboard" disabled={isSubmitting || !!successMessage} variant="outlined">Cancelar</Button>

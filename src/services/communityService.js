@@ -172,3 +172,13 @@ export const deleteCommunity = async (communityId) => {
         throw error.response ? error.response.data : new Error('Error al eliminar la comunidad.');
     }
 };
+
+export const getCommunitySubscribers = async (communityId) => {
+    try {
+        const response = await api.get(`/communities/${communityId}/subscribers`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching community subscribers:", error);
+        throw error.response?.data || new Error('No se pudo obtener la lista de suscriptores.');
+    }
+};

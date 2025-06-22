@@ -25,13 +25,12 @@ const bulkTheme = createTheme({
       disabled: 'rgba(0, 0, 0, 0.38)',
     },
     background: {
-      default: '#ECEFF1', // Gris muy claro
+      default: '#ECEFF1', // Este color ya no será el principal, pero se mantiene como fallback
       paper: '#FFFFFF',
     },
-    // --- COLOR PREMIUM CORREGIDO ---
     premium: {
       main: '#009688', // Verde azulado (Teal 500)
-      contrastText: '#FFFFFF', // Texto blanco para que resalte
+      contrastText: '#FFFFFF',
     },
     divider: 'rgba(0, 0, 0, 0.12)',
   },
@@ -50,10 +49,11 @@ const bulkTheme = createTheme({
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: (themeParam) => `
+      styleOverrides: `
         body {
-          background-color: ${themeParam.palette.background.default};
-          color: ${themeParam.palette.text.primary};
+          /* MODIFICADO: Se cambia a un degradado radial que imita el logo */
+          background: radial-gradient(circle at 20% 25%, #e3e8ff, #ede7f6);
+          background-attachment: fixed;
         }
       `,
     },

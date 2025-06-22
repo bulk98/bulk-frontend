@@ -60,3 +60,13 @@ export const deletePost = async (postId) => {
         throw new Error("Error al eliminar el post.");
     }
 };
+
+export const togglePinPost = async (postId) => {
+    try {
+        const response = await api.patch(`/posts/${postId}/pin`);
+        return response.data;
+    } catch (error) {
+        console.error("Error toggling pin status for post:", error);
+        throw error.response?.data || new Error('No se pudo actualizar el estado del post.');
+    }
+};

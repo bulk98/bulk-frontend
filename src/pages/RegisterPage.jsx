@@ -64,8 +64,22 @@ const RegisterPage = () => {
     const onFinalSubmit = async (data) => {
         setServerError('');
         try {
-            await registerUser(data);
-            navigate('/login', { state: { successMessage: '¡Registro exitoso! Por favor, inicia sesión.' } });
+            // ===== INICIO DE LA MODIFICACIÓN =====
+            // Se elimina 'confirmPassword' del objeto antes de enviarlo,
+            // ya que no existe en la base de datos.
+            const { confirmPassword, ...dataToSend } = data;
+
+            if (dataToSend.fechaDeNacimiento) {
+                dataToSend.fechaDeNacimiento = new Date(dataToSend.fechaDeNacimiento).toISOString();
+            } else {
+                delete dataToSend.fechaDeNacimiento;
+            }
+
+            // Enviamos el objeto 'dataToSend' que ya no contiene 'confirmPassword'.
+            await registerUser(dataToSend);
+            // ===== FIN DE LA MODIFICACIÓN =====
+
+            navigate('/please-verify', { state: { email: data.email } });
         } catch (error) {
             setServerError(error.response?.data?.error || error.message || 'Error en el registro. El usuario o correo puede que ya existan.');
         }

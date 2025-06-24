@@ -1,41 +1,22 @@
 // src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import GlobalStyles from '@mui/material/GlobalStyles'; // <-- Importamos GlobalStyles
-import bulkTheme from './theme'; 
-import { BrowserRouter } from 'react-router-dom';
-
-const globalStylesInput = (
-  <GlobalStyles styles={{
-  'html, body, #root': {
-    margin: 0,
-    padding: 0,
-    height: '100%',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  '*': {
-    margin: 0,
-    padding: 0,
-    boxSizing: 'inherit',
-  }
-}} />
-
-);
+// El ThemeProvider y el tema ahora se manejan dentro de App.jsx,
+// por lo que ya no los necesitamos aquí.
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ThemeProvider theme={bulkTheme}>
-        <CssBaseline />
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ThemeProvider>
+      {/* AuthProvider ahora envuelve a App. 
+        App, a su vez, contendrá el proveedor de tema y el resto de la lógica.
+        Esta estructura asegura que los contextos estén disponibles en toda la aplicación.
+      */}
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

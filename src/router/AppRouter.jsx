@@ -22,6 +22,14 @@ import NotFoundPage from '../pages/NotFoundPage';
 import EditProfilePage from '../pages/EditProfilePage';
 import SubscriptionsManagementPage from '../pages/SubscriptionsManagementPage';
 
+// Recuperacion de contraseña
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/ResetPasswordPage';
+
+// Verificacion de Correo de Registro
+import PleaseVerifyPage from '../pages/PleaseVerifyPage';
+import EmailVerifiedPage from '../pages/EmailVerifiedPage';
+
 // Pasos del Flujo de Registro
 import Step1_PersonalInfo from '../pages/Register/Step1_PersonalInfo';
 import Step2_Username from '../pages/Register/Step2_Username';
@@ -75,6 +83,38 @@ const AppRouter = () => {
             path="/dashboard"
             element={<ProtectedRoute allowedUserTypes={['OG']}><GuruDashboardPage /></ProtectedRoute>}
           />
+          <Route 
+            path="/forgot-password" 
+            element={<ForgotPasswordPage />} 
+          />
+          <Route 
+            path="/reset-password/:token" 
+            element={<ResetPasswordPage />} 
+          />
+          <Route 
+            path="*" 
+            element={<NotFoundPage />} 
+          />
+          <Route 
+            path="/please-verify" 
+            element={<PleaseVerifyPage />} 
+          />
+
+          <Route 
+            path="/email-verified/:token" 
+            element={<EmailVerifiedPage />} 
+          />
+
+          <Route 
+            path="/email-verified" 
+            element={<EmailVerifiedPage />} /> {/* Ruta de éxito sin token */}
+
+          <Route 
+            path="*" 
+            element={<NotFoundPage />} 
+          />
+
+
           {/* ... (otras rutas) ... */}
                 <Route path="/gestionar-suscripciones" element={<ProtectedRoute><SubscriptionsManagementPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFoundPage />} />

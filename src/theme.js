@@ -1,47 +1,84 @@
 // src/theme.js
-import { createTheme } from '@mui/material/styles';
+import { createTheme, responsiveFontSizes } from '@mui/material/styles';
 
-const bulkTheme = createTheme({
+// Esta función devuelve un objeto de configuración de tema basado en el modo (light o dark)
+const getDesignTokens = (mode) => ({
   palette: {
-    primary: {
-      main: '#7E57C2', // Lila/Púrpura medio
-      light: '#B39DDB',
-      dark: '#512DA8',
-      contrastText: '#FFFFFF',
-    },
-    secondary: {
-      main: '#607D8B', // Azul grisáceo / plateado
-      light: '#B0BEC5',
-      dark: '#455A64',
-      contrastText: '#FFFFFF',
-    },
+    mode, // El modo se establece aquí: 'light' o 'dark'
+    ...(mode === 'light'
+      // ====================================================================
+      // VALORES PARA MODO CLARO (Tu paleta de colores original)
+      // ====================================================================
+      ? {
+          primary: {
+            main: '#7E57C2',
+            light: '#B39DDB',
+            dark: '#512DA8',
+            contrastText: '#FFFFFF',
+          },
+          secondary: {
+            main: '#607D8B',
+            light: '#B0BEC5',
+            dark: '#455A64',
+            contrastText: '#FFFFFF',
+          },
+          background: {
+            default: '#ECEFF1',
+            paper: '#FFFFFF',
+          },
+          text: {
+            primary: '#212121',
+            secondary: '#757575',
+          },
+          premium: {
+            main: '#009688',
+            contrastText: '#FFFFFF',
+          },
+        }
+      // ====================================================================
+      // VALORES PARA MODO OSCURO
+      // ====================================================================
+      : {
+          primary: {
+            main: '#B39DDB',
+            light: '#E6CEFF',
+            dark: '#836FA9',
+            contrastText: '#000000',
+          },
+          secondary: {
+            main: '#B0BEC5',
+            light: '#E2F1F8',
+            dark: '#808E95',
+            contrastText: '#000000',
+          },
+          background: {
+            default: '#16161D', // Tu color oscuro base
+            paper: '#1E1E26',   // Un poco más claro para tarjetas
+          },
+          text: {
+            primary: '#ECEFF1',
+            secondary: '#B0BEC5',
+          },
+          premium: {
+            main: '#009688',
+            contrastText: '#FFFFFF',
+          },
+        }),
+    // Propiedades comunes que no cambian con el modo
+    divider: 'rgba(255, 255, 255, 0.12)',
     error: { main: '#D32F2F' },
     warning: { main: '#F57C00' },
     info: { main: '#0288D1' },
     success: { main: '#388E3C' },
-    text: {
-      primary: '#212121', // Negro suave
-      secondary: '#757575',
-      disabled: 'rgba(0, 0, 0, 0.38)',
-    },
-    background: {
-      default: '#ECEFF1', // Este color ya no será el principal, pero se mantiene como fallback
-      paper: '#FFFFFF',
-    },
-    premium: {
-      main: '#009688', // Verde azulado (Teal 500)
-      contrastText: '#FFFFFF',
-    },
-    divider: 'rgba(0, 0, 0, 0.12)',
   },
   typography: {
     fontFamily: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'].join(','),
-    h1: { fontSize: '2.75rem', fontWeight: 600, color: '#212121' },
-    h2: { fontSize: '2.25rem', fontWeight: 600, color: '#212121' },
-    h3: { fontSize: '1.75rem', fontWeight: 600, color: '#212121' },
-    h4: { fontSize: '1.5rem', fontWeight: 600, color: '#212121' },
-    h5: { fontSize: '1.25rem', fontWeight: 500, color: '#212121' },
-    h6: { fontSize: '1.1rem', fontWeight: 500, color: '#212121' },
+    h1: { fontSize: '2.75rem', fontWeight: 600 },
+    h2: { fontSize: '2.25rem', fontWeight: 600 },
+    h3: { fontSize: '1.75rem', fontWeight: 600 },
+    h4: { fontSize: '1.5rem', fontWeight: 600 },
+    h5: { fontSize: '1.25rem', fontWeight: 500 },
+    h6: { fontSize: '1.1rem', fontWeight: 500 },
     button: { fontSize: '0.875rem', fontWeight: 500, textTransform: 'none' },
   },
   shape: {
@@ -49,18 +86,26 @@ const bulkTheme = createTheme({
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: `
-        body {
-          /* MODIFICADO: Se cambia a un degradado radial que imita el logo */
-          background: radial-gradient(circle at 20% 25%, #e3e8ff, #ede7f6);
-          background-attachment: fixed;
+      styleOverrides: (themeParam) => ({
+        body: {
+          // El fondo degradado cambia dependiendo del modo actual
+          background: themeParam.palette.mode === 'light'
+            ? `radial-gradient(circle at 20% 25%, #e3e8ff, ${themeParam.palette.background.default})`
+            : `linear-gradient(to bottom, #21212B, #16161D)`,
+          backgroundAttachment: 'fixed',
         }
-      `,
+      }),
     },
     MuiAppBar: {
-      defaultProps: { elevation: 1, color: 'inherit' },
+      defaultProps: { elevation: 0, color: 'transparent' },
       styleOverrides: {
-        root: ({theme}) => ({ color: theme.palette.text.primary, }),
+        root: ({theme}) => ({ 
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(8px)',
+            ...(theme.palette.mode === 'dark' && {
+                backgroundColor: 'rgba(30, 30, 38, 0.75)',
+            })
+        }),
       }
     },
     MuiPaper: { defaultProps: { elevation: 0, variant: "outlined" }, styleOverrides: { root: { backgroundImage: 'none' } } },
@@ -89,4 +134,4 @@ const bulkTheme = createTheme({
   },
 });
 
-export default bulkTheme;
+export const createBulkTheme = (mode) => responsiveFontSizes(createTheme(getDesignTokens(mode)));

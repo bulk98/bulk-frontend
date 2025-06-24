@@ -127,7 +127,12 @@ const LoginPage = () => {
                                 {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Iniciar Sesión'}
                             </Button>
                             
-                            <Grid container justifyContent="center">
+                            <Grid container justifyContent="space-between">
+                                <Grid item>
+                                    <Link component={RouterLink} to="/forgot-password" variant="body2">
+                                        ¿Olvidaste tu contraseña?
+                                    </Link>
+                                </Grid>
                                 <Grid item>
                                     <Link component={RouterLink} to="/register" variant="body2">
                                         ¿No tienes una cuenta? Regístrate

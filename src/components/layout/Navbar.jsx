@@ -25,6 +25,9 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import SubscriptionsIcon from '@mui/icons-material/Subscriptions';
 import NotificationsIcon from '@mui/icons-material/Notifications'; // NUEVO: Ícono de notificaciones
 import NotificationPanel from './NotificationPanel';
+import { useThemeContext } from '../../contexts/ThemeContext'; // NUEVO
+import Brightness4Icon from '@mui/icons-material/Brightness4'; // Ícono de luna (modo oscuro)
+import Brightness7Icon from '@mui/icons-material/Brightness7'; // Ícono de sol (modo claro)
 
 const Navbar = () => {
     const { user, isAuthenticated, logout, unreadCount } = useAuth();
@@ -38,6 +41,7 @@ const Navbar = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [options, setOptions] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { mode, toggleColorMode } = useThemeContext(); // NUEVO: Obtenemos el modo y la función de cambio
 
     // Debounce manual
     useEffect(() => {
@@ -198,6 +202,14 @@ const Navbar = () => {
 
                     {isAuthenticated && user ? (
                         <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 1, ml: { xs: 0, md: 1.5 } }}>
+                           
+                           {/* NUEVO: Botón para cambiar el tema */}
+                            <Tooltip title={mode === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}>
+                                <IconButton onClick={toggleColorMode} color="inherit">
+                                    {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                                </IconButton>
+                            </Tooltip>
+
                            {/* NUEVO: Botón de Notificaciones */}
                             <Tooltip title="Notificaciones">
                                 <IconButton onClick={handleOpenNotifMenu} color="inherit">
@@ -242,7 +254,7 @@ const Navbar = () => {
                             >
                                 <NotificationPanel onClose={handleCloseNotifMenu} />
                             </Menu>
-                            
+
                         </Box>
                     ) : (
                         <Stack direction="row" spacing={1} sx={{ ml: 2, display: { xs: 'none', md: 'flex' } }}>

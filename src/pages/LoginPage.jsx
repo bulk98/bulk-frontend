@@ -7,8 +7,9 @@ import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import PublicNavbar from '../components/layout/PublicNavbar';
 
 // Importaciones de MUI
-import { Avatar, Button, TextField, Link, Grid, Box, Typography, Container, CircularProgress, Alert, Paper } from '@mui/material';
+import { Avatar, Button, TextField, Link, Grid, Box, Typography, Container, CircularProgress, Alert, Paper, Divider } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import GoogleIcon from '@mui/icons-material/Google';
 
 const LoginPage = () => {
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
@@ -79,6 +80,21 @@ const LoginPage = () => {
                         <Typography component="h1" variant="h5">
                             Iniciar Sesión
                         </Typography>
+
+                        {/* BOTÓN DE GOOGLE */}
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            startIcon={<GoogleIcon />}
+                            sx={{ mt: 3, mb: 2 }}
+                            // Este es un enlace normal, no un botón de submit
+                            component="a" 
+                            href="http://localhost:3000/api/auth/google" // Apunta directamente al backend
+                        >
+                            Continuar con Google
+                        </Button>
+                        
+                        <Divider sx={{ width: '100%', my: 1 }}>O</Divider>
                         
                         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1, width: '100%' }}>
                             {serverError && <Alert severity="error" sx={{ width: '100%', mt: 2, mb: 1 }}>{serverError}</Alert>}

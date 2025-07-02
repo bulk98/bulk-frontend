@@ -16,11 +16,17 @@ import CommunityDetailPage from '../pages/CommunityDetailPage';
 import PostDetailPage from '../pages/PostDetailPage';
 import CreatePostPage from '../pages/CreatePostPage';
 import CreateCommunityPage from '../pages/CreateCommunityPage';
-import EditCommunityPage from '../pages/EditCommunityPage';
+import ManageCommunityPage from '../pages/ManageCommunityPage';
+import EditCommunityInfoPage from '../pages/EditCommunityInfoPage';
 import GuruDashboardPage from '../pages/GuruDashboardPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import EditProfilePage from '../pages/EditProfilePage';
 import SubscriptionsManagementPage from '../pages/SubscriptionsManagementPage';
+import AuthCallbackPage from '../pages/AuthCallbackPage';
+import CommunityMembersTab from '../components/communities/CommunityMembersTab';
+import CommunitySubscribersTab from '../components/communities/CommunitySubscribersTab';
+import SubscriptionPlansManager from '../components/management/SubscriptionPlansManager';
+import CommunityStats from '../components/management/CommunityStats';
 
 // Recuperacion de contraseña
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
@@ -70,11 +76,24 @@ const AppRouter = () => {
             path="/crear-comunidad"
             element={<ProtectedRoute allowedUserTypes={['OG']}><CreateCommunityPage /></ProtectedRoute>}
           />
-          <Route
-            path="/comunidades/:communityId/editar"
-            element={<ProtectedRoute allowedUserTypes={['OG']}><EditCommunityPage /></ProtectedRoute>}
-          />
-          {/* === NUEVA RUTA PARA EDITAR EL PERFIL === */}
+          {/* ===== INICIO DE LA CORRECCIÓN ===== */}
+          {/* La ruta de GESTIÓN ahora es la padre y se cierra correctamente */}
+          <Route path="comunidades/:communityId/gestionar" element={<ProtectedRoute allowedUserTypes={['OG']}><ManageCommunityPage /></ProtectedRoute>}>
+              {/* Ruta índice que redirige a la primera opción por defecto (editar) */}
+              <Route index element={<Navigate to="editar-info" replace />} />
+              
+              {/* Todas las demás son rutas hijas que se renderizan en el Outlet */}
+              <Route path="editar-info" element={<EditCommunityInfoPage />} />
+              <Route path="members" element={<CommunityMembersTab />} />
+              <Route path="subscribers" element={<CommunitySubscribersTab />} />
+              <Route path="plans" element={<SubscriptionPlansManager />} />
+              <Route path="stats" element={<CommunityStats />} />
+          </Route>
+          
+          {/* La ruta de EDICIÓN es independiente */}
+          <Route path="comunidades/:communityId/editar-info" element={<ProtectedRoute allowedUserTypes={['OG']}><EditCommunityInfoPage /></ProtectedRoute>} /> 
+          {/* ===== FIN DE LA CORRECCIÓN ===== */}
+           
           <Route
             path="/perfil/editar"
             element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>}
@@ -114,6 +133,16 @@ const AppRouter = () => {
             element={<NotFoundPage />} 
           />
 
+          <Route 
+            path="/auth/callback" 
+            element={<AuthCallbackPage />} 
+          />
+
+          <Route 
+            path="*" 
+            element={<NotFoundPage />} 
+          />
+
 
           {/* ... (otras rutas) ... */}
                 <Route path="/gestionar-suscripciones" element={<ProtectedRoute><SubscriptionsManagementPage /></ProtectedRoute>} />
@@ -128,6 +157,8 @@ const AppRouter = () => {
         
         {/* NUEVO FLUJO DE REGISTRO ANIDADO */}
         <Route path="/register" element={<RegisterPage />} />
+
+    
 
       </Routes>
   );

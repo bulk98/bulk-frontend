@@ -239,7 +239,7 @@ const CommunityDetailPage = () => {
                     <Typography variant="h6">Descripción</Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ mt: 1, whiteSpace: 'pre-wrap', maxWidth: '75ch' }}>{community.description || 'Esta comunidad aún no tiene una descripción.'}</Typography>
                     <Stack direction={{xs:'column', sm:'row'}} spacing={1.5} sx={{ my: 2.5, alignItems: 'flex-start' }}>
-                        {isCreator && <Button variant="contained" color="secondary" component={RouterLink} to={`/comunidades/${communityId}/editar`} startIcon={<EditIcon />}>Gestionar Comunidad</Button>}
+                        {isCreator && <Button variant="contained" color="secondary" component={RouterLink} to={`/comunidades/${communityId}/gestionar`} startIcon={<EditIcon />}>Gestionar Comunidad</Button>}
                         {isAuthenticated && canCreatePost && (<Button variant="contained" color="primary" component={RouterLink} to={`/comunidades/${communityId}/crear-post`} startIcon={<AddCircleOutlineIcon/>} state={{ communityName: community.name, canUserMarkAsPremium: canPostPremium }}>Crear un Post</Button>)}
                         {isAuthenticated && !isCreator && !membershipInfo?.isMember && <Button variant="contained" color="primary" onClick={handleJoinCommunity} disabled={actionLoading}>Unirse</Button>}
                         {isAuthenticated && membershipInfo?.isMember && !isCreator && !membershipInfo?.isSubscribed && <Button variant="contained" color="premium" onClick={handleOpenSubscriptionDialog} disabled={subscriptionActionLoading} startIcon={<StarIcon/>}>Suscribirse a Premium</Button>}

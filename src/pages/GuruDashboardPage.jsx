@@ -2,40 +2,49 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+// MODIFICADO: Se importa el nuevo servicio para la gráfica
 import { getGuruDashboardData } from '../services/userService';
+import { getCommunityGrowthStats } from '../services/communityService'; 
 import DashboardBarChart from '../components/dashboard/DashboardBarChart';
 import EmptyDashboard from '../components/dashboard/EmptyDashboard';
-
-import { Container, Typography, Paper, Box, CircularProgress, Alert, Grid, Card, CardContent, CardActions, CardHeader, Button, Stack, Avatar } from '@mui/material';
+// NUEVO: Se importa el componente de la gráfica de líneas y los componentes de Acordeón
+import GrowthChart from '../components/dashboard/GrowthChart';
+import { 
+    Container, Typography, Paper, Box, CircularProgress, Alert, Grid, Card, CardContent, 
+    CardActions, CardHeader, Button, Stack, Avatar, Accordion, AccordionSummary, AccordionDetails
+} from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ArticleIcon from '@mui/icons-material/Article';
 import StarIcon from '@mui/icons-material/Star';
 import GroupsIcon from '@mui/icons-material/Groups';
-
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'; // Ícono para el acordeón
 
 const KpiCard = ({ title, value, icon }) => (
-  <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center', height: '100%' }}>
-    <Box sx={{ mr: 2, color: 'primary.main' }}>
-      {icon}
-    </Box>
-    <Box>
-      <Typography variant="h6" sx={{fontWeight:'bold'}}>{value}</Typography>
-      <Typography variant="body2" color="text.secondary">{title}</Typography>
-    </Box>
-  </Paper>
+    <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center', height: '100%' }}>
+        <Box sx={{ mr: 2, color: 'primary.main' }}>{icon}</Box>
+        <Box>
+            <Typography variant="h6" sx={{fontWeight:'bold'}}>{value}</Typography>
+            <Typography variant="body2" color="text.secondary">{title}</Typography>
+        </Box>
+    </Paper>
 );
 
 const GuruDashboardPage = () => {
     const navigate = useNavigate();
     const { user: authUser, isAuthenticated, loading: loadingAuth } = useAuth(); 
-
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    
+    // ===== INICIO DE LA MODIFICACIÓN =====
+    // Nuevo estado para almacenar los datos de las gráficas de crecimiento de cada comunidad
+    const [chartsData, setChartsData] = useState({});
+    // Estado para saber qué gráfica se está cargando
+    const [loadingChart, setLoadingChart] = useState(null);
+    // ===== FIN DE LA MODIFICACIÓN =====
 
     const fetchDashboardData = useCallback(async () => {
-        // Se quita la comprobación de rol de aquí, ya que se hace en el useEffect
         if (!isAuthenticated) return;
         setLoading(true);
         setError('');
@@ -48,26 +57,41 @@ const GuruDashboardPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [isAuthenticated]); // Se simplifican dependencias
+    }, [isAuthenticated]);
 
     useEffect(() => {
-        if (loadingAuth) return; // Esperar a que la autenticación termine
-        
+        if (loadingAuth) return;
         if (isAuthenticated) {
-            // Se actualiza el nombre del rol a OG
             if (authUser?.tipo_usuario === 'OG') {
                 fetchDashboardData();
             } else {
-                // ===== CORRECCIÓN AQUÍ =====
-                // Si el usuario no es OG, establecemos el error y quitamos el estado de carga.
                 setError("Acceso denegado: Esta página es solo para OGs.");
                 setLoading(false); 
             }
         } else {
-            // Si no está autenticado, lo redirigimos
             navigate('/login');
         }
-    }, [authUser, isAuthenticated, loadingAuth, fetchDashboardData, navigate]); // Dependencias actualizadas
+    }, [authUser, isAuthenticated, loadingAuth, fetchDashboardData, navigate]);
+
+    // ===== INICIO DE LA MODIFICACIÓN =====
+    // Función que se llama al expandir un acordeón para cargar los datos de la gráfica
+    const handleFetchChartData = useCallback(async (communityId) => {
+        // Si ya tenemos los datos, o si ya se están cargando, no hacer nada
+        if (chartsData[communityId] || loadingChart === communityId) return;
+
+        setLoadingChart(communityId); // Indicamos que esta gráfica está cargando
+        try {
+            const stats = await getCommunityGrowthStats(communityId);
+            setChartsData(prev => ({ ...prev, [communityId]: stats }));
+        } catch (err) {
+            console.error(`Error al cargar datos de gráfica para comunidad ${communityId}`, err);
+            // Guardamos un estado de error para esa gráfica específica
+            setChartsData(prev => ({ ...prev, [communityId]: { error: true, message: err.message } }));
+        } finally {
+            setLoadingChart(null); // Dejamos de cargar
+        }
+    }, [chartsData, loadingChart]);
+    // ===== FIN DE LA MODIFICACIÓN =====
 
     const processedData = useMemo(() => {
         if (!dashboardData || !dashboardData.managedCommunities) {
@@ -86,13 +110,10 @@ const GuruDashboardPage = () => {
         return { kpis, chartData };
     }, [dashboardData]);
 
-
     if (loadingAuth || loading) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}><CircularProgress /></Box>;
     }
     
-    // Ahora, cuando un usuario no-OG acceda, 'loading' será false y 'error' tendrá un mensaje,
-    // por lo que este bloque se renderizará correctamente.
     if (error) { 
         return <Container maxWidth="md" sx={{ textAlign: 'center', mt: 5 }}><Alert severity="error">{error}</Alert></Container>; 
     }
@@ -110,14 +131,7 @@ const GuruDashboardPage = () => {
                     <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>Panel de OG</Typography>
                     <Typography color="text.secondary">Bienvenido de nuevo, {authUser.name || authUser.email}.</Typography>
                 </Box>
-                <Button 
-                    component={RouterLink} 
-                    to="/crear-comunidad" 
-                    variant="contained" 
-                    size="large"
-                    startIcon={<AddCircleOutlineIcon />}
-                    sx={{mt: {xs: 2, md: 0}}}
-                >
+                <Button component={RouterLink} to="/crear-comunidad" variant="contained" size="large" startIcon={<AddCircleOutlineIcon />} sx={{mt: {xs: 2, md: 0}}}>
                     Crear Nueva Comunidad
                 </Button>
             </Stack>
@@ -125,10 +139,7 @@ const GuruDashboardPage = () => {
             {managedCommunities && managedCommunities.length > 0 ? (
                 <>
                     <Grid container spacing={3} sx={{ mb: 4 }}>
-                        <Grid item xs={12} sm={6} md={3}><KpiCard title="Comunidades Creadas" value={dashboardData.totalCommunitiesCreated ?? 0} icon={<GroupsIcon sx={{fontSize:40}}/>} /></Grid>
-                        <Grid item xs={12} sm={6} md={3}><KpiCard title="Miembros Totales" value={processedData.kpis.totalMembers?.toLocaleString() ?? 0} icon={<PeopleAltIcon sx={{fontSize:40}}/>} /></Grid>
-                        <Grid item xs={12} sm={6} md={3}><KpiCard title="Posts Totales" value={processedData.kpis.totalPosts?.toLocaleString() ?? 0} icon={<ArticleIcon sx={{fontSize:40}}/>} /></Grid>
-                        <Grid item xs={12} sm={6} md={3}><KpiCard title="Suscriptores Premium" value={processedData.kpis.totalSubscribers?.toLocaleString() ?? 0} icon={<StarIcon sx={{fontSize:40}}/>} /></Grid>
+                        {/* ... (Tus KpiCards sin cambios) ... */}
                     </Grid>
                     
                     {processedData.chartData && processedData.chartData.length > 0 && (
@@ -142,10 +153,10 @@ const GuruDashboardPage = () => {
                     </Typography>
                     <Grid container spacing={3}>
                         {managedCommunities.map((community) => (
-                            <Grid item xs={12} md={6} lg={4} key={community.id}>
-                                <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 } }}>
+                            <Grid item xs={12} md={6} key={community.id}>
+                                <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                                     <CardHeader
-                                        avatar={ <Avatar variant="rounded" src={community.logoUrl || undefined} alt={`Logo de ${community.name}`}>{!community.logoUrl && community.name.charAt(0)}</Avatar> }
+                                        avatar={ <Avatar variant="rounded" src={community.logoUrl || undefined}>{!community.logoUrl && community.name.charAt(0)}</Avatar> }
                                         titleTypographyProps={{ noWrap: true, fontWeight: 'bold', variant: 'h6' }}
                                         title={community.name}
                                     />
@@ -156,9 +167,32 @@ const GuruDashboardPage = () => {
                                             <Typography variant="body2" color="text.secondary">Suscriptores: <b>{community.premiumSubscribersCount ?? 0}</b></Typography>
                                         </Stack>
                                     </CardContent>
-                                    <CardActions sx={{ justifyContent: 'flex-end', p:2, pt: 1 }}>
+                                    
+                                    {/* ===== INICIO DE LA MODIFICACIÓN ===== */}
+                                    {/* Se añade un Acordeón para la gráfica de crecimiento */}
+                                    <Accordion sx={{ boxShadow: 'none', '&:before': { display: 'none' } }}>
+                                        <AccordionSummary expandIcon={<ExpandMoreIcon />} onClick={() => handleFetchChartData(community.id)}>
+                                            <Typography variant="body2" color="primary">Ver crecimiento</Typography>
+                                        </AccordionSummary>
+                                        <AccordionDetails>
+                                            {loadingChart === community.id ? (
+                                                <CircularProgress size={24} />
+                                            ) : chartsData[community.id] && !chartsData[community.id].error ? (
+                                                <GrowthChart 
+                                                    data={chartsData[community.id]} 
+                                                    dataKey="Miembros" 
+                                                    title="Miembros a lo largo del tiempo" 
+                                                />
+                                            ) : (
+                                                <Typography color="error.main">No se pudieron cargar los datos.</Typography>
+                                            )}
+                                        </AccordionDetails>
+                                    </Accordion>
+                                    {/* ===== FIN DE LA MODIFICACIÓN ===== */}
+                                    
+                                    <CardActions sx={{ justifyContent: 'flex-end', p:2, pt: 1, borderTop: 1, borderColor: 'divider' }}>
                                         <Button component={RouterLink} to={`/comunidades/${community.id}`} size="small">Ver</Button>
-                                        <Button component={RouterLink} to={`/comunidades/${community.id}/editar`} size="small" variant="contained" color="secondary">Gestionar</Button>
+                                        <Button component={RouterLink} to={`/comunidades/${community.id}/gestionar`} size="small" variant="contained" color="secondary">Gestionar</Button>
                                     </CardActions>
                                 </Card>
                             </Grid>

@@ -182,3 +182,18 @@ export const getCommunitySubscribers = async (communityId) => {
         throw error.response?.data || new Error('No se pudo obtener la lista de suscriptores.');
     }
 };
+
+/**
+ * Obtiene los datos de crecimiento de miembros de una comunidad para la gráfica.
+ * @param {string} communityId - El ID de la comunidad.
+ * @returns {Promise<Array>} Un array de datos para la gráfica.
+ */
+export const getCommunityGrowthStats = async (communityId) => {
+    try {
+        const response = await api.get(`/communities/${communityId}/growth-stats`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching community growth stats:", error);
+        throw error.response?.data || new Error('No se pudo obtener las estadísticas de crecimiento.');
+    }
+};

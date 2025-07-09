@@ -25,6 +25,7 @@ import {
     ExitToApp as ExitToAppIcon, Language as LanguageIcon, WorkspacePremium as WorkspacePremiumIcon
 } from '@mui/icons-material';
 // ===== FIN DE LA CORRECCIÓN =====
+import SubscriptionPlanDialog from '../components/subscriptions/SubscriptionPlanDialog';
 
 const CommunityDetailPage = () => {
     const { communityId } = useParams();

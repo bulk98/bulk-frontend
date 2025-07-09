@@ -78,15 +78,17 @@ const AppRouter = () => {
           />
           {/* ===== INICIO DE LA CORRECCIÓN ===== */}
           {/* La ruta de GESTIÓN ahora es la padre y se cierra correctamente */}
-          <Route path="comunidades/:communityId/gestionar" element={<ProtectedRoute allowedUserTypes={['OG']}><ManageCommunityPage /></ProtectedRoute>}>
-              {/* Ruta índice que redirige a la primera opción por defecto (editar) */}
+          <Route 
+            path="comunidades/:communityId/gestionar" 
+            element={<ProtectedRoute allowedUserTypes={['OG']}><ManageCommunityPage /></ProtectedRoute>}
+          >
+              {/* Ruta índice que redirige a la primera opción por defecto */}
               <Route index element={<Navigate to="editar-info" replace />} />
               
-              {/* Todas las demás son rutas hijas que se renderizan en el Outlet */}
               <Route path="editar-info" element={<EditCommunityInfoPage />} />
+              <Route path="plans" element={<SubscriptionPlansManager />} />
               <Route path="members" element={<CommunityMembersTab />} />
               <Route path="subscribers" element={<CommunitySubscribersTab />} />
-              <Route path="plans" element={<SubscriptionPlansManager />} />
               <Route path="stats" element={<CommunityStats />} />
           </Route>
           

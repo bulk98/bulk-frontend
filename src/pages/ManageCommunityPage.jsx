@@ -85,7 +85,8 @@ const ManageCommunityPage = () => {
 
                 {/* Área de Contenido Principal */}
                 <Grid item xs={12} md={9}>
-                    <Content>
+                    <Content variant="outlined">
+                        {/* Outlet renderizará aquí el componente de la ruta hija activa */}
                         <Outlet />
                     </Content>
                 </Grid>

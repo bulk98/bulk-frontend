@@ -1,5 +1,6 @@
 // src/components/communities/CommunityMembersTab.jsx
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, Link as RouterLink } from 'react-router-dom'; // Se importa useParams
 import { useAuth } from '../../contexts/AuthContext';
 import { getCommunityMembers, updateMemberRole, removeMemberFromCommunity, toggleMemberPremiumPermission } from '../../services/communityService';
 import {
@@ -9,24 +10,27 @@ import {
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
-const CommunityMembersTab = ({ communityId, isVisible }) => {
+const CommunityMembersTab = () => {
+  // ===== INICIO DE LA MODIFICACIÓN =====
+  const { communityId } = useParams(); // Obtenemos el ID de la comunidad desde la URL
+  // ===== FIN DE LA MODIFICACIÓN =====
+  
   const { user: authUser } = useAuth();
   const [membersList, setMembersList] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Se inicia como 'true' para la carga inicial
   const [error, setError] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [dialogState, setDialogState] = useState({ type: null, member: null, loading: false, error: '', success: '' });
   const [selectedNewRole, setSelectedNewRole] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-
+  
   const fetchMembers = useCallback(async () => {
     if (!communityId) return;
     setLoading(true);
     setError('');
     try {
       const membersData = await getCommunityMembers(communityId);
-      // Filtra al propio OG/creador de la lista de miembros a gestionar
       const otherMembers = membersData.filter(m => m.userId !== authUser.id) || [];
       setMembersList(otherMembers);
     } catch (err) {
@@ -36,11 +40,10 @@ const CommunityMembersTab = ({ communityId, isVisible }) => {
     }
   }, [communityId, authUser.id]);
 
+  // Se simplifica el useEffect para que cargue los datos al montar el componente
   useEffect(() => {
-    if (isVisible) {
-      fetchMembers();
-    }
-  }, [isVisible, fetchMembers]);
+    fetchMembers();
+  }, [fetchMembers]);
 
   const handleMenuOpen = (event, member) => {
     setMenuAnchorEl(event.currentTarget);
@@ -65,7 +68,7 @@ const CommunityMembersTab = ({ communityId, isVisible }) => {
     setDialogState(s => ({ ...s, loading: true, error: '' }));
     try {
       await updateMemberRole(communityId, dialogState.member.userId, selectedNewRole);
-      fetchMembers(); // Recargar la lista de miembros
+      fetchMembers();
       setSnackbar({ open: true, message: 'Rol actualizado con éxito.', severity: 'success' });
       closeDialog();
     } catch (err) {
@@ -78,7 +81,7 @@ const CommunityMembersTab = ({ communityId, isVisible }) => {
     setDialogState(s => ({ ...s, loading: true, error: '' }));
     try {
       await removeMemberFromCommunity(communityId, dialogState.member.userId);
-      fetchMembers(); // Recargar la lista de miembros
+      fetchMembers();
       setSnackbar({ open: true, message: 'Miembro expulsado con éxito.', severity: 'success' });
       closeDialog();
     } catch (err) {
@@ -89,16 +92,11 @@ const CommunityMembersTab = ({ communityId, isVisible }) => {
   const handleTogglePremiumPermission = async (member) => {
     const originalState = member.canPublishPremiumContent;
     const newState = !originalState;
-    
-    // Actualización optimista de la UI
     setMembersList(list => list.map(m => m.userId === member.userId ? { ...m, canPublishPremiumContent: newState } : m));
-    
     try {
-      // Llamada al servicio con el nuevo valor del permiso
       await toggleMemberPremiumPermission(communityId, member.userId, newState);
       setSnackbar({ open: true, message: 'Permiso actualizado.', severity: 'success' });
     } catch (err) {
-      // Revertir el cambio en la UI en caso de error
       setMembersList(list => list.map(m => m.userId === member.userId ? { ...m, canPublishPremiumContent: originalState } : m));
       setSnackbar({ open: true, message: err.message || 'Error al actualizar permiso.', severity: 'error' });
     }
@@ -109,7 +107,7 @@ const CommunityMembersTab = ({ communityId, isVisible }) => {
 
   return (
     <>
-      <Typography variant="h6" gutterBottom>Gestionar Miembros ({membersList.length})</Typography>
+      <Typography variant="h5" gutterBottom>Gestionar Miembros ({membersList.length})</Typography>
       {membersList.length === 0 ? (
         <Typography sx={{ mt: 2, fontStyle: 'italic' }}>No hay otros miembros en esta comunidad.</Typography>
       ) : (
@@ -152,12 +150,11 @@ const CommunityMembersTab = ({ communityId, isVisible }) => {
         </TableContainer>
       )}
 
-      {selectedMember && (
-        <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={handleMenuClose}>
+      {/* ... (Tus componentes de Menu y Dialogs sin cambios) ... */}
+      <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={handleMenuClose}>
           <MenuItem onClick={() => openDialog('role', selectedMember)}>Cambiar Rol</MenuItem>
           <MenuItem onClick={() => openDialog('expel', selectedMember)} sx={{ color: 'error.main' }}>Expulsar Miembro</MenuItem>
-        </Menu>
-      )}
+      </Menu>
 
       <Dialog open={dialogState.type === 'role'} onClose={closeDialog}>
         <DialogTitle>Cambiar Rol de {dialogState.member?.email}</DialogTitle>

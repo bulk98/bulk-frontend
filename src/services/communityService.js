@@ -197,3 +197,18 @@ export const getCommunityGrowthStats = async (communityId) => {
         throw error.response?.data || new Error('No se pudo obtener las estadísticas de crecimiento.');
     }
 };
+
+/**
+ * Obtiene los planes de suscripción públicos y activos para una comunidad.
+ * @param {string} communityId - El ID de la comunidad.
+ * @returns {Promise<Array>} Un array de planes de suscripción.
+ */
+export const getPublicCommunityPlans = async (communityId) => {
+    try {
+        const response = await api.get(`/public/communities/${communityId}/plans`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching public community plans:", error);
+        throw error.response?.data || new Error('No se pudo obtener los planes de la comunidad.');
+    }
+};

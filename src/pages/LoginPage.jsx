@@ -89,7 +89,7 @@ const LoginPage = () => {
                             sx={{ mt: 3, mb: 2 }}
                             // Este es un enlace normal, no un botón de submit
                             component="a" 
-                            href="http://localhost:3000/api/auth/google" // Apunta directamente al backend
+                            href={`${import.meta.env.VITE_BACKEND_URL}/auth/google`}
                         >
                             Continuar con Google
                         </Button>

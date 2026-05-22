@@ -119,6 +119,11 @@ const EditProfilePage = () => {
         setSuccessMessage('');
         try {
             const { avatarFile, ...profileData } = data;
+            
+            delete profileData.tipo_usuario;
+            if (profileData.paisDeNacimiento === null) delete profileData.paisDeNacimiento;
+            if (profileData.ciudadDeNacimiento === null) delete profileData.ciudadDeNacimiento;
+            
             if (typeof profileData.fechaDeNacimiento === 'string' && profileData.fechaDeNacimiento.trim() === '') {
                 profileData.fechaDeNacimiento = null;
             } else if (profileData.fechaDeNacimiento) {

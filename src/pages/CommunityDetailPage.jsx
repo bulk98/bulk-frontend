@@ -171,20 +171,49 @@ const CommunityDetailPage = () => {
     };
     
     const handleSubscribePremium = useCallback(async () => { 
-        setSubscriptionActionLoading(true); 
-        try { 
-            await subscribeToCommunityPremium(communityId); 
-            setSnackbar({ open: true, message: '¡Suscripción exitosa!' });
-            setCommunity(prev => ({...prev, currentUserMembership: {...prev.currentUserMembership, isSubscribed: true}}));
+    setSubscriptionActionLoading(true); 
+    try { 
+        const response = await subscribeToCommunityPremium(communityId);
+
+        if (response.status === 'ACTIVE') {
+            setSnackbar({ open: true, message: response.mensaje || 'Suscripción activa.' });
+            setCommunity(prev => ({
+                ...prev,
+                currentUserMembership: {
+                    ...prev.currentUserMembership,
+                    isSubscribed: true,
+                    subscriptionStatus: 'ACTIVE',
+                    subscription: response.subscription
+                }
+            }));
             setPage(1);
             fetchPosts(1);
-        } catch(err) { 
-            setSnackbar({ open: true, message: err.message || 'Error al suscribirte.' });
-        } finally { 
-            setSubscriptionActionLoading(false); 
-            setIsSubscriptionDialogOpen(false);
+            return;
         }
-    }, [communityId, fetchPosts]);
+
+        if (response.status === 'PENDING') {
+            setSnackbar({ open: true, message: response.mensaje || 'Tu solicitud quedó pendiente de aprobación por el OG.' });
+            setCommunity(prev => ({
+                ...prev,
+                currentUserMembership: {
+                    ...prev.currentUserMembership,
+                    isSubscribed: false,
+                    subscriptionStatus: 'PENDING',
+                    subscription: response.subscription
+                }
+            }));
+            return;
+        }
+
+        setSnackbar({ open: true, message: response.mensaje || 'Solicitud enviada.' });
+
+    } catch(err) { 
+        setSnackbar({ open: true, message: err.message || err.error || 'Error al solicitar la suscripción.' });
+    } finally { 
+        setSubscriptionActionLoading(false); 
+        setIsSubscriptionDialogOpen(false);
+    }
+}, [communityId, fetchPosts]);
     
     const handleUnsubscribePremium = useCallback(async () => { 
         setSubscriptionActionLoading(true); 
@@ -211,9 +240,15 @@ const CommunityDetailPage = () => {
 
     
     const membershipInfo = community.currentUserMembership;
-    const userCanViewPremium = isCreator || membershipInfo?.role === 'MODERATOR' || membershipInfo?.isSubscribed;
+    const subscriptionStatus = membershipInfo?.subscriptionStatus || membershipInfo?.subscription?.status;
+    const hasPendingSubscription = subscriptionStatus === 'PENDING';
+    const hasActiveSubscription = membershipInfo?.isSubscribed || subscriptionStatus === 'ACTIVE';
+
+    const userCanViewPremium = isCreator || membershipInfo?.role === 'MODERATOR' || hasActiveSubscription;
     const canCreatePost = membershipInfo?.role === 'CREATOR' || membershipInfo?.role === 'MODERATOR';
     const canPostPremium = isCreator || (membershipInfo?.role === 'MODERATOR' && membershipInfo?.canPublishPremiumContent === true);
+
+
 
     return (
         <>
@@ -243,8 +278,39 @@ const CommunityDetailPage = () => {
                         {isCreator && <Button variant="contained" color="secondary" component={RouterLink} to={`/comunidades/${communityId}/gestionar`} startIcon={<EditIcon />}>Gestionar Comunidad</Button>}
                         {isAuthenticated && canCreatePost && (<Button variant="contained" color="primary" component={RouterLink} to={`/comunidades/${communityId}/crear-post`} startIcon={<AddCircleOutlineIcon/>} state={{ communityName: community.name, canUserMarkAsPremium: canPostPremium }}>Crear un Post</Button>)}
                         {isAuthenticated && !isCreator && !membershipInfo?.isMember && <Button variant="contained" color="primary" onClick={handleJoinCommunity} disabled={actionLoading}>Unirse</Button>}
-                        {isAuthenticated && membershipInfo?.isMember && !isCreator && !membershipInfo?.isSubscribed && <Button variant="contained" color="premium" onClick={handleOpenSubscriptionDialog} disabled={subscriptionActionLoading} startIcon={<StarIcon/>}>Suscribirse a Premium</Button>}
-                        {isAuthenticated && membershipInfo?.isMember && !isCreator && membershipInfo?.isSubscribed && <Button variant="outlined" color="premium" onClick={handleUnsubscribePremium} disabled={subscriptionActionLoading}>Cancelar Suscripción</Button>}
+                        {isAuthenticated && membershipInfo?.isMember && !isCreator && !hasActiveSubscription && !hasPendingSubscription && (
+    <Button
+        variant="contained"
+        color="premium"
+        onClick={handleOpenSubscriptionDialog}
+        disabled={subscriptionActionLoading}
+        startIcon={<StarIcon/>}
+    >
+        Suscribirse a Premium
+    </Button>
+)}
+
+{isAuthenticated && membershipInfo?.isMember && !isCreator && hasPendingSubscription && (
+    <Button
+        variant="outlined"
+        color="premium"
+        disabled
+        startIcon={<StarIcon/>}
+    >
+        Solicitud pendiente
+    </Button>
+)}
+
+{isAuthenticated && membershipInfo?.isMember && !isCreator && hasActiveSubscription && (
+    <Button
+        variant="outlined"
+        color="premium"
+        onClick={handleUnsubscribePremium}
+        disabled={subscriptionActionLoading}
+    >
+        Cancelar Suscripción
+    </Button>
+)}
                         {isAuthenticated && membershipInfo?.isMember && !isCreator && <Button variant="outlined" color="error" onClick={handleLeaveCommunityClick} disabled={actionLoading} startIcon={<ExitToAppIcon/>}>Salir de la Comunidad</Button>}
                     </Stack>
                 </Box>

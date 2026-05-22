@@ -2,9 +2,9 @@
 
 import api from './api';
 
-export const subscribeToCommunityPremium = async (communityId) => {
+export const subscribeToCommunityPremium = async (communityId, subscriptionData = {}) => {
     try {
-        const response = await api.post(`/communities/${communityId}/suscripcion`);
+        const response = await api.post(`/communities/${communityId}/suscripcion`, subscriptionData);
         return response.data;
     } catch (error) {
         console.error(`Error en servicio subscribeToCommunityPremium para communityId ${communityId}:`, error.response?.data || error.message);

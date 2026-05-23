@@ -6,12 +6,14 @@ import StarIcon from '@mui/icons-material/Star';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import EditIcon from '@mui/icons-material/Edit';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
 
 // ===== INICIO DE LA MODIFICACIÓN =====
 // Se reordena el menú para poner "Editar" primero.
 const menuItems = [
     { text: 'Editar Info/Imágenes', path: 'editar-info', icon: <EditIcon /> },
     { text: 'Planes y Precios', path: 'plans', icon: <AttachMoneyIcon /> },
+    { text: 'Solicitudes Premium', path: 'subscription-requests', icon: <PendingActionsIcon /> },
     { text: 'Miembros', path: 'members', icon: <PeopleIcon /> },
     { text: 'Suscriptores', path: 'subscribers', icon: <StarIcon /> },
     { text: 'Estadísticas', path: 'stats', icon: <BarChartIcon /> },

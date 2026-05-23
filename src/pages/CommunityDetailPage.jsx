@@ -349,7 +349,10 @@ const CommunityDetailPage = () => {
                                         onLike={handleToggleLikePost} 
                                         onComment={handleCommentPost} 
                                         onShare={handleSharePost}
-                                        onUpdate={fetchCommunityData} // Esta ya la habíamos planeado, asegúrate que esté
+                                        onUpdate={() => {
+                                            setPage(1);
+                                            fetchPosts(1);
+                                        }}
                                         canManage={canManageCommunity} // <-- AÑADE ESTA LÍNEA 
                                     />
                                 );

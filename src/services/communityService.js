@@ -212,3 +212,36 @@ export const getPublicCommunityPlans = async (communityId) => {
         throw error.response?.data || new Error('No se pudo obtener los planes de la comunidad.');
     }
 };
+
+export const getPendingSubscriptionRequests = async (communityId) => {
+    try {
+        const response = await api.get(`/communities/${communityId}/subscription-requests/pending`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching pending subscription requests:", error);
+        throw error.response?.data || new Error('No se pudieron obtener las solicitudes pendientes.');
+    }
+};
+
+export const approveSubscriptionRequest = async (communityId, subscriptionId) => {
+    try {
+        const response = await api.patch(`/communities/${communityId}/subscription-requests/${subscriptionId}/approve`);
+        return response.data;
+    } catch (error) {
+        console.error("Error approving subscription request:", error);
+        throw error.response?.data || new Error('No se pudo aprobar la solicitud.');
+    }
+};
+
+export const rejectSubscriptionRequest = async (communityId, subscriptionId, adminNote = '') => {
+    try {
+        const response = await api.patch(
+            `/communities/${communityId}/subscription-requests/${subscriptionId}/reject`,
+            { adminNote }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error rejecting subscription request:", error);
+        throw error.response?.data || new Error('No se pudo rechazar la solicitud.');
+    }
+};
